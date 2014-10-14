@@ -2,6 +2,7 @@
 
 var React = require('react');
 var AjaxForm = require('./ajax-form');
+var Link = require('react-router').Link;
 
 module.exports = React.createClass({
   displayName: 'LoginForm',
@@ -12,6 +13,6 @@ module.exports = React.createClass({
         React.DOM.input({ id: 'username', name: 'username', type: 'text'}),
         React.DOM.label({ htmlFor: 'password'}, 'Password:'),
         React.DOM.input({ id: 'password', name: 'password', type: 'password'})),
-      React.DOM.a({ href: '/register' }, 'Create a login'));
+      Link({ to: 'register' }, 'Create a login'));
   }
 });

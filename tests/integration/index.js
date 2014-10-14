@@ -4,6 +4,7 @@ var expect = require('chai').expect;
 
 var childProcess = require('child_process');
 var path = require('path');
+var url = require('url');
 var q = require('q');
 var request = require('request');
 var webdriver = require('selenium-webdriver');
@@ -45,11 +46,11 @@ describe('The Distributron', function() {
 
   describe('login form', function() {
     it('has a username and password input', function(done) {
-      q(driver.get(baseUrl))
+      goToUrl('/')
         .then(function() {
           return q.all([
-            driver.findElement(byCss('input[type="text"][name="username"]')),
-            driver.findElement(byCss('input[type="password"][name="password"]'))
+            select('input[type="text"][name="username"]'),
+            select('input[type="password"][name="password"]')
           ]);
         })
         .spread(function(username, password) {
@@ -77,10 +78,10 @@ describe('The Distributron', function() {
           })
           .then(function() {
             return q.all([
-              driver.findElement(byCss('input[name="username"]')),
-              driver.findElement(byCss('input[name="password"]')),
-              driver.findElement(byCss('input[name="confirm"]')),
-              driver.findElement(byCss('input[type="submit"]'))
+              select('input[name="username"]'),
+              select('input[name="password"]'),
+              select('input[name="confirm"]'),
+              select('input[type="submit"]')
             ]);
           })
           .spread(function(username, password, confirm, submit) {
@@ -94,11 +95,25 @@ describe('The Distributron', function() {
       });
 
       function getRegistrationLink() {
-        return q(driver.get(baseUrl))
+        return goToUrl('/')
           .then(function() {
-            return driver.findElement(webdriver.By.css('a[href="/register"]'));
+            return select('a[href="/register"]');
           });
       }
+    });
+  });
+
+  describe('registration form', function() {
+    it('has a link back to the login form', function(done) {
+      goToUrl('/register')
+        .then(function() {
+          return select('a[href="/login"]');
+        })
+        .then(function(link) {
+          expect(link).to.exist;
+          done();
+        })
+        .fail(done);
     });
   });
 
@@ -106,4 +121,12 @@ describe('The Distributron', function() {
     appProcess && appProcess.kill();
     driver.quit();
   });
+
+  function goToUrl(path) {
+    return q(driver.get(url.resolve(baseUrl, path)));
+  }
+
+  function select(selector) {
+    return driver.findElement(byCss(selector));
+  }
 });

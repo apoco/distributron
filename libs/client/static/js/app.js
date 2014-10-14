@@ -22,9 +22,7 @@ var React = require('react');
 var Router = require('react-router');
 var Route = Router.Route;
 var Routes = Router.Routes;
-var NotFoundRoute = Router.NotFoundRoute;
 var DefaultRoute = Router.DefaultRoute;
-var Link = Router.Link;
 var LoginForm = require('./login-form');
 var RegistrationForm = require('./registration-form');
 
@@ -49,6 +47,7 @@ module.exports = Distributron;
 
 var React = require('react');
 var AjaxForm = require('./ajax-form');
+var Link = require('react-router').Link;
 
 module.exports = React.createClass({
   displayName: 'LoginForm',
@@ -59,30 +58,33 @@ module.exports = React.createClass({
         React.DOM.input({ id: 'username', name: 'username', type: 'text'}),
         React.DOM.label({ htmlFor: 'password'}, 'Password:'),
         React.DOM.input({ id: 'password', name: 'password', type: 'password'})),
-      React.DOM.a({ href: '/register' }, 'Create a login'));
+      Link({ to: 'register' }, 'Create a login'));
   }
 });
 
-},{"./ajax-form":1,"react":196}],4:[function(require,module,exports){
+},{"./ajax-form":1,"react":196,"react-router":20}],4:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
 var AjaxForm = require('./ajax-form');
+var Link = require('react-router').Link;
 
 module.exports = React.createClass({
   displayName: 'RegistrationForm',
   render: function() {
-    return AjaxForm(null,
-      React.DOM.label({ htmlFor: 'username' }, 'Email address:'),
-      React.DOM.input({ id: 'username', name: 'username', type: 'email' }),
-      React.DOM.label({ htmlFor: 'password' }, 'Password:'),
-      React.DOM.input({ id: 'password', name: 'password', type: 'password' }),
-      React.DOM.label({ htmlFor: 'confirm' }, 'Re-enter password:'),
-      React.DOM.input({ id: 'confirm', name: 'confirm', type: 'password' }));
+    return React.DOM.div(null,
+      AjaxForm(null,
+        React.DOM.label({ htmlFor: 'username' }, 'Email address:'),
+        React.DOM.input({ id: 'username', name: 'username', type: 'email' }),
+        React.DOM.label({ htmlFor: 'password' }, 'Password:'),
+        React.DOM.input({ id: 'password', name: 'password', type: 'password' }),
+        React.DOM.label({ htmlFor: 'confirm' }, 'Re-enter password:'),
+        React.DOM.input({ id: 'confirm', name: 'confirm', type: 'password' })),
+      Link({ to: 'login' }, 'I already have an account'));
   }
 });
 
-},{"./ajax-form":1,"react":196}],5:[function(require,module,exports){
+},{"./ajax-form":1,"react":196,"react-router":20}],5:[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
  *

@@ -4,9 +4,7 @@ var React = require('react');
 var Router = require('react-router');
 var Route = Router.Route;
 var Routes = Router.Routes;
-var NotFoundRoute = Router.NotFoundRoute;
 var DefaultRoute = Router.DefaultRoute;
-var Link = Router.Link;
 var LoginForm = require('./login-form');
 var RegistrationForm = require('./registration-form');
 

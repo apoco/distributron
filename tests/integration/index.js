@@ -43,7 +43,7 @@ describe('The Distributron', function() {
   });
 
   describe('login form', function() {
-    it('is provided', function(done) {
+    it('has a username and password input', function(done) {
       q(driver.get(baseUrl))
         .then(function() {
           return q.all([
@@ -57,6 +57,20 @@ describe('The Distributron', function() {
           done();
         })
         .fail(done);
+    });
+
+    describe('register link', function() {
+      it('is displayed', function(done) {
+        q(driver.get(baseUrl))
+          .then(function() {
+            return driver.findElement(webdriver.By.css('a[href="/register"]'));
+          })
+          .then(function(link) {
+            expect(link).to.exist;
+            done();
+          })
+          .fail(done);
+      })
     });
   });
 

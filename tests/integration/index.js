@@ -48,9 +48,9 @@ describe('The Distributron', function() {
     it('has a username and password input', function(done) {
       goToUrl('/')
         .then(function() {
-          return q.all([
-            select('input[type="text"][name="username"]'),
-            select('input[type="password"][name="password"]')
+          return select([
+            'input[type="text"][name="username"]',
+            'input[type="password"][name="password"]'
           ]);
         })
         .spread(function(username, password) {
@@ -77,11 +77,11 @@ describe('The Distributron', function() {
             return link.click();
           })
           .then(function() {
-            return q.all([
-              select('input[name="username"]'),
-              select('input[name="password"]'),
-              select('input[name="confirm"]'),
-              select('input[type="submit"]')
+            return select([
+              'input[name="username"]',
+              'input[name="password"]',
+              'input[name="confirm"]',
+              'input[type="submit"]'
             ]);
           })
           .spread(function(username, password, confirm, submit) {
@@ -115,6 +115,49 @@ describe('The Distributron', function() {
         })
         .fail(done);
     });
+
+    describe('validation', function() {
+      var inputs;
+
+      beforeEach(function(done) {
+        goToUrl('/register')
+          .then(function() {
+            return select([
+              '[name="username"]',
+              '[name="password"]',
+              '[name="confirm"]',
+              '[name="question"]',
+              '[name="answer"]',
+              '[type="submit"]']);
+          })
+          .spread(function(username, password, confirm, question, answer, submit) {
+            inputs = {
+              username: username,
+              password: password,
+              confirm: confirm,
+              question: question,
+              answer: answer,
+              submit: submit };
+            return q.all([
+              inputs.username.sendKeys('test@test.com'),
+              inputs.password.sendKeys('password'),
+              inputs.confirm.sendKeys('password'),
+              inputs.question.sendKeys('question'),
+              inputs.answer.sendKeys('answer')
+            ]);
+          })
+          .then(function() { done(); })
+          .fail(done);
+      });
+
+      it('ensures that the username is populated', function() {
+        inputs.username.clear();
+
+        inputs.submit.click();
+
+        expect(select('form .error')).to.exist;
+      });
+    });
   });
 
   after(function() {
@@ -126,7 +169,13 @@ describe('The Distributron', function() {
     return q(driver.get(url.resolve(baseUrl, path)));
   }
 
-  function select(selector) {
-    return driver.findElement(byCss(selector));
+  function select(selectors) {
+    if (selectors instanceof Array) {
+      return q.all(selectors.map(function(selector) {
+        return driver.findElement(byCss(selector));
+      }));
+    } else {
+      return driver.findElement(byCss(selectors));
+    }
   }
 });

@@ -7,6 +7,7 @@ var path = require('path');
 var q = require('q');
 var request = require('request');
 var webdriver = require('selenium-webdriver');
+var byCss = webdriver.By.css;
 
 describe('The Distributron', function() {
 
@@ -47,8 +48,8 @@ describe('The Distributron', function() {
       q(driver.get(baseUrl))
         .then(function() {
           return q.all([
-            driver.findElement(webdriver.By.css('input[type="text"][name="username"]')),
-            driver.findElement(webdriver.By.css('input[type="password"][name="password"]'))
+            driver.findElement(byCss('input[type="text"][name="username"]')),
+            driver.findElement(byCss('input[type="password"][name="password"]'))
           ]);
         })
         .spread(function(username, password) {
@@ -61,16 +62,43 @@ describe('The Distributron', function() {
 
     describe('register link', function() {
       it('is displayed', function(done) {
-        q(driver.get(baseUrl))
-          .then(function() {
-            return driver.findElement(webdriver.By.css('a[href="/register"]'));
-          })
+        getRegistrationLink()
           .then(function(link) {
             expect(link).to.exist;
             done();
           })
           .fail(done);
-      })
+      });
+
+      it('takes you to a registration form', function(done) {
+        getRegistrationLink()
+          .then(function(link) {
+            return link.click();
+          })
+          .then(function() {
+            return q.all([
+              driver.findElement(byCss('input[name="username"]')),
+              driver.findElement(byCss('input[name="password"]')),
+              driver.findElement(byCss('input[name="confirm"]')),
+              driver.findElement(byCss('input[type="submit"]'))
+            ]);
+          })
+          .spread(function(username, password, confirm, submit) {
+            expect(username).to.exist;
+            expect(password).to.exist;
+            expect(confirm).to.exist;
+            expect(submit).to.exist;
+            done();
+          })
+          .fail(done);
+      });
+
+      function getRegistrationLink() {
+        return q(driver.get(baseUrl))
+          .then(function() {
+            return driver.findElement(webdriver.By.css('a[href="/register"]'));
+          });
+      }
     });
   });
 

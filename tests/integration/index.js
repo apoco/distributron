@@ -150,12 +150,31 @@ describe('The Distributron', function() {
           .fail(done);
       });
 
-      it('ensures that the username is populated', function() {
-        inputs.username.clear();
+      it('ensures that the username is populated', function(done) {
+        q(inputs.username.clear())
+          .then(function() {
+            return inputs.submit.click();
+          })
+          .then(function() {
+            expect(select('form .error')).to.exist;
+            done();
+          })
+          .fail(done);
+      });
 
-        inputs.submit.click();
-
-        expect(select('form .error')).to.exist;
+      it.only('ensures that the username is an email address', function(done) {
+        q(inputs.username.clear())
+          .then(function() {
+            return inputs.username.sendKeys('not an email address');
+          })
+          .then(function() {
+            return inputs.submit.click();
+          })
+          .then(function() {
+            expect(select('form .error')).to.exist;
+            done();
+          })
+          .fail(done);
       });
     });
   });

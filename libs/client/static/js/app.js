@@ -47,7 +47,7 @@ module.exports = Distributron;
 
 var React = require('react');
 
-var fieldId = 1;
+var fieldCtr = 1;
 
 module.exports = React.createClass({
   displayName: 'Field',
@@ -55,7 +55,7 @@ module.exports = React.createClass({
     return { type: 'text', value: '', rules: [] };
   },
   render: function() {
-    var fieldId = 'field-' + (fieldId++);
+    var fieldId = 'field-' + (fieldCtr++);
     return React.DOM.div({ cssClass: 'field' },
       React.DOM.label({ htmlFor: fieldId }, this.props.label),
       React.DOM.input({
@@ -105,6 +105,10 @@ var fields = [
       {
         isValid: function() { return !!this.state.username; },
         message: 'You must enter an email address'
+      },
+      {
+        isValid: function() { return /[^@]+@[^@]+/.test(this.state.username); },
+        message: 'Invalid email address'
       }
     ]
   },

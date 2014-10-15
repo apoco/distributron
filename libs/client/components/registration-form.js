@@ -14,6 +14,10 @@ var fields = [
       {
         isValid: function() { return !!this.state.username; },
         message: 'You must enter an email address'
+      },
+      {
+        isValid: function() { return /[^@]+@[^@]+/.test(this.state.username); },
+        message: 'Invalid email address'
       }
     ]
   },

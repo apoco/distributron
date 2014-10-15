@@ -134,7 +134,17 @@ var fields = [
       }
     ]
   },
-  { name: 'question', type: 'text', label: 'Password reset question' },
+  {
+    name: 'question',
+    type: 'text',
+    label: 'Password reset question',
+    rules: [
+      {
+        message: 'You must enter a password reset question',
+        isValid: function() { return !!this.state.question; }
+      }
+    ]
+  },
   { name: 'answer', type: 'password', label: 'Password reset answer' }
 ];
 

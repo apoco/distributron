@@ -195,6 +195,16 @@ describe('The Distributron', function() {
             expect(error).to.exist;
           });
       });
+
+      it('ensures that the security answer is populated', function() {
+        return fillInput(inputs.answer, '')
+          .then(function() {
+            return select('form .error');
+          })
+          .then(function(error) {
+            expect(error).to.exist;
+          });
+      });
     });
   });
 

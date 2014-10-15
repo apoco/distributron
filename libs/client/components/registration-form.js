@@ -54,7 +54,17 @@ var fields = [
       }
     ]
   },
-  { name: 'answer', type: 'password', label: 'Password reset answer' }
+  {
+    name: 'answer',
+    type: 'password',
+    label: 'Password reset answer',
+    rules: [
+      {
+        message: 'You must enter a password reset answer',
+        isValid: function() { return !!this.state.answer; }
+      }
+    ]
+  }
 ];
 
 module.exports = React.createClass({

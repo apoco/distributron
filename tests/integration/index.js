@@ -172,6 +172,19 @@ describe('The Distributron', function() {
             expect(error).to.exist;
           });
       });
+
+      it('ensures that the password confirmation matches', function() {
+        return fillInput(inputs.password, 'legitPassword')
+          .then(function() {
+            return fillInput(inputs.confirm, 'invalidMatch');
+          })
+          .then(function() {
+            return select('form .error');
+          })
+          .then(function(error) {
+            expect(error).to.exist;
+          });
+      });
     });
   });
 

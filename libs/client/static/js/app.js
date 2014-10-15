@@ -123,7 +123,17 @@ var fields = [
       }
     ]
   },
-  { name: 'confirm', type: 'password', label: 'Re-enter password' },
+  {
+    name: 'confirm',
+    type: 'password',
+    label: 'Re-enter password',
+    rules: [
+      {
+        message: 'Your passwords do not match',
+        isValid: function() { return this.state.password === this.state.confirm; }
+      }
+    ]
+  },
   { name: 'question', type: 'text', label: 'Password reset question' },
   { name: 'answer', type: 'password', label: 'Password reset answer' }
 ];

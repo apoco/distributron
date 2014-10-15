@@ -147,30 +147,15 @@ describe('The Distributron', function() {
       });
 
       it('ensures that the username is populated', function() {
-        return fillInput(inputs.username, '')
-          .then(function() {
-            return select('form .error');
-          })
-          .then(function(error) {
-            expect(error).to.exist;
-          });
+        return fillInput(inputs.username, '').then(expectError);
       });
 
       it('ensures that the username is an email address', function() {
-        return fillInput(inputs.username, 'not an email address')
-          .then(function() {
-            expect(select('form .error')).to.exist;
-          });
+        return fillInput(inputs.username, 'not an email address').then(expectError);
       });
 
       it('ensures that the password is populated', function() {
-        return fillInput(inputs.password, '')
-          .then(function() {
-            return select('form .error');
-          })
-          .then(function(error) {
-            expect(error).to.exist;
-          });
+        return fillInput(inputs.password, '').then(expectError);
       });
 
       it('ensures that the password confirmation matches', function() {
@@ -178,33 +163,20 @@ describe('The Distributron', function() {
           .then(function() {
             return fillInput(inputs.confirm, 'invalidMatch');
           })
-          .then(function() {
-            return select('form .error');
-          })
-          .then(function(error) {
-            expect(error).to.exist;
-          });
+          .then(expectError);
       });
 
       it('ensures that the security question is populated', function() {
-        return fillInput(inputs.question, '')
-          .then(function() {
-            return select('form .error');
-          })
-          .then(function(error) {
-            expect(error).to.exist;
-          });
+        return fillInput(inputs.question, '').then(expectError);
       });
 
       it('ensures that the security answer is populated', function() {
-        return fillInput(inputs.answer, '')
-          .then(function() {
-            return select('form .error');
-          })
-          .then(function(error) {
-            expect(error).to.exist;
-          });
+        return fillInput(inputs.answer, '').then(expectError);
       });
+
+      function expectError() {
+        return expect(select('form .error')).to.exist;
+      }
     });
   });
 

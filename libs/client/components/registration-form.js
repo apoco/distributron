@@ -21,7 +21,17 @@ var fields = [
       }
     ]
   },
-  { name: 'password', type: 'password', label: 'Password' },
+  {
+    name: 'password',
+    type: 'password',
+    label: 'Password',
+    rules: [
+      {
+        message: 'You must enter a password',
+        isValid: function() { return !!this.state.password; }
+      }
+    ]
+  },
   { name: 'confirm', type: 'password', label: 'Re-enter password' },
   { name: 'question', type: 'text', label: 'Password reset question' },
   { name: 'answer', type: 'password', label: 'Password reset answer' }

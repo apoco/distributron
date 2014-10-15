@@ -16,6 +16,8 @@ describe('The Distributron', function() {
   var driver;
   var baseUrl = 'http://127.0.0.1:2835/';
 
+  this.timeout(5000);
+
   before(function(done) {
     driver = new webdriver.Builder()
       .withCapabilities(webdriver.Capabilities.chrome())
@@ -45,34 +47,30 @@ describe('The Distributron', function() {
   });
 
   describe('login form', function() {
-    it('has a username and password input', function(done) {
-      goToUrl('/')
+    it('has a username and password input', function() {
+      return goToUrl('/')
         .then(function() {
-          return select([
-            'input[type="text"][name="username"]',
-            'input[type="password"][name="password"]'
+          return q.all([
+            waitFor('input[name="username"]', 5000),
+            waitFor('input[name="password"]', 5000)
           ]);
         })
         .spread(function(username, password) {
           expect(username).to.exist;
           expect(password).to.exist;
-          done();
-        })
-        .fail(done);
+        });
     });
 
     describe('register link', function() {
-      it('is displayed', function(done) {
-        getRegistrationLink()
+      it('is displayed', function() {
+        return getRegistrationLink()
           .then(function(link) {
             expect(link).to.exist;
-            done();
-          })
-          .fail(done);
+          });
       });
 
-      it('takes you to a registration form', function(done) {
-        getRegistrationLink()
+      it('takes you to a registration form', function() {
+        return getRegistrationLink()
           .then(function(link) {
             return link.click();
           })
@@ -89,15 +87,13 @@ describe('The Distributron', function() {
             expect(password).to.exist;
             expect(confirm).to.exist;
             expect(submit).to.exist;
-            done();
-          })
-          .fail(done);
+          });
       });
 
       function getRegistrationLink() {
         return goToUrl('/')
           .then(function() {
-            return select('a[href="/register"]');
+            return waitFor('a[href="/register"]');
           });
       }
     });
@@ -166,6 +162,16 @@ describe('The Distributron', function() {
             expect(select('form .error')).to.exist;
           });
       });
+
+      it('ensures that the password is populated', function() {
+        return fillInput(inputs.password, '')
+          .then(function() {
+            return select('form .error');
+          })
+          .then(function(error) {
+            expect(error).to.exist;
+          });
+      });
     });
   });
 
@@ -194,6 +200,17 @@ describe('The Distributron', function() {
     } else {
       return driver.findElement(byCss(selectors));
     }
+  }
+
+  function waitFor(selector, timeout) {
+    selector = byCss(selector);
+    return driver
+      .wait(function() {
+        return driver.findElement(selector).isDisplayed();
+      }, timeout || 2000)
+      .then(function() {
+        return driver.findElement(selector);
+      });
   }
 
   function fillInput(input, text) {

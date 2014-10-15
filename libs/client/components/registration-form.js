@@ -35,19 +35,21 @@ module.exports = React.createClass({
       password: '',
       confirmedPassword: '',
       securityQuestion: '',
-      securityAnswer: ''
+      securityAnswer: '',
+      submitted: false
     };
   },
   handleChange: function(field, e) {
-    var change = {};
+    var change = { };
     change[field] = e.target.value.replace(/^\s+|\s+$/g, '');
+    change[field + 'Changed'] = true;
     this.setState(change);
   },
   validate: function(field) {
     var rules = field.rules || [];
     for (var i = 0; i < rules.length; i++) {
       var rule = rules[i];
-      if (!rule.isValid.call(this)) {
+      if (this.state[field.name + 'Changed'] && !rule.isValid.call(this)) {
         return rule.message;
       }
     }

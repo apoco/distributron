@@ -17,6 +17,10 @@ describe('The Distributron', function() {
   var baseUrl = 'http://127.0.0.1:2835/';
 
   before(function(done) {
+    driver = new webdriver.Builder()
+      .withCapabilities(webdriver.Capabilities.chrome())
+      .build();
+
     var startupScript = path.resolve(__dirname, '../../index.js');
     appProcess = childProcess.fork(startupScript, ['config.json'], {silent: true, cwd: __dirname});
     appProcess.stdout.on('data', function(data) {
@@ -27,10 +31,6 @@ describe('The Distributron', function() {
     appProcess.stderr.on('data', function(data) {
       process.stderr.write(data);
     });
-
-    driver = new webdriver.Builder()
-      .withCapabilities(webdriver.Capabilities.chrome())
-      .build();
   });
 
   describe('startup script', function() {
@@ -104,32 +104,34 @@ describe('The Distributron', function() {
   });
 
   describe('registration form', function() {
-    it('has a link back to the login form', function(done) {
-      goToUrl('/register')
-        .then(function() {
-          return select('a[href="/login"]');
-        })
-        .then(function(link) {
-          expect(link).to.exist;
-          done();
-        })
-        .fail(done);
+
+    beforeEach(function() {
+      return goToUrl('/register');
+    });
+
+    it('has a link back to the login form', function() {
+      expect(select('a[href="/login"]')).to.exist;
+    });
+
+    it('does not validate before the form changes', function() {
+      return q(driver.findElements(byCss('form .error')))
+        .then(function(elements) {
+          expect(elements.length).to.equal(0);
+        });
     });
 
     describe('validation', function() {
       var inputs;
 
-      beforeEach(function(done) {
-        goToUrl('/register')
-          .then(function() {
-            return select([
-              '[name="username"]',
-              '[name="password"]',
-              '[name="confirm"]',
-              '[name="question"]',
-              '[name="answer"]',
-              '[type="submit"]']);
-          })
+      beforeEach(function() {
+        return q(select([
+            '[name="username"]',
+            '[name="password"]',
+            '[name="confirm"]',
+            '[name="question"]',
+            '[name="answer"]',
+            '[type="submit"]']
+          ))
           .spread(function(username, password, confirm, question, answer, submit) {
             inputs = {
               username: username,
@@ -145,36 +147,24 @@ describe('The Distributron', function() {
               inputs.question.sendKeys('question'),
               inputs.answer.sendKeys('answer')
             ]);
-          })
-          .then(function() { done(); })
-          .fail(done);
+          });
       });
 
-      it('ensures that the username is populated', function(done) {
-        q(inputs.username.clear())
+      it('ensures that the username is populated', function() {
+        return fillInput(inputs.username, '')
           .then(function() {
-            return inputs.submit.click();
+            return select('form .error');
           })
-          .then(function() {
-            expect(select('form .error')).to.exist;
-            done();
-          })
-          .fail(done);
+          .then(function(error) {
+            expect(error).to.exist;
+          });
       });
 
-      it.only('ensures that the username is an email address', function(done) {
-        q(inputs.username.clear())
-          .then(function() {
-            return inputs.username.sendKeys('not an email address');
-          })
-          .then(function() {
-            return inputs.submit.click();
-          })
+      it('ensures that the username is an email address', function() {
+        return fillInput(inputs.username, 'not an email address')
           .then(function() {
             expect(select('form .error')).to.exist;
-            done();
-          })
-          .fail(done);
+          });
       });
     });
   });
@@ -185,7 +175,15 @@ describe('The Distributron', function() {
   });
 
   function goToUrl(path) {
-    return q(driver.get(url.resolve(baseUrl, path)));
+    var absoluteUrl = url.resolve(baseUrl, path);
+    return q(driver.getCurrentUrl())
+      .then(function(currentUrl) {
+        if (currentUrl === absoluteUrl) {
+          return q(driver.navigate().refresh());
+        } else {
+          return q(driver.get(absoluteUrl));
+        }
+      });
   }
 
   function select(selectors) {
@@ -196,5 +194,16 @@ describe('The Distributron', function() {
     } else {
       return driver.findElement(byCss(selectors));
     }
+  }
+
+  function fillInput(input, text) {
+    return q(input.click())
+      .then(function() {
+        return input.sendKeys(
+          webdriver.Key.chord(webdriver.Key.CONTROL, 'a'),
+          webdriver.Key.BACK_SPACE,
+          text,
+          webdriver.Key.TAB);
+      });
   }
 });

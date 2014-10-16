@@ -5,13 +5,20 @@ var React = require('react');
 
 module.exports = React.createClass({
   displayName: 'AjaxForm',
+  getDefaultProps: function() {
+    return { canSubmit: true };
+  },
   handleSubmit: function(e) {
     e.preventDefault();
   },
   render: function() {
+    var submitProps = { type: 'submit', value: 'Submit' };
+    if (!this.props.canSubmit) {
+      submitProps.disabled = 'disabled';
+    }
     return React.DOM.form({ onSubmit: this.handleSubmit },
       this.props.children,
-      React.DOM.input({ type: 'submit', value: 'Submit' }));
+      React.DOM.input(submitProps));
   }
 });
 
@@ -185,7 +192,7 @@ module.exports = React.createClass({
       }
     }
   },
-  renderFields: function() {
+  renderFields: function(validationMessages) {
     var self = this;
     return fields.map(function(field) {
       return Field({
@@ -193,14 +200,22 @@ module.exports = React.createClass({
         label: field.label,
         type: field.type,
         value: self.state[field.name],
-        validationMessage: self.validate.call(self, field),
+        validationMessage: validationMessages[field.name],
         onChange: self.handleChange.bind(self, field.name)
       });
     });
   },
   render: function() {
+    var isValid = true;
+    var validationMessages = {};
+    fields.forEach(function(field) {
+      var validationMsg = this.validate(field);
+      isValid = isValid && !validationMsg;
+      validationMessages[field.name] = validationMsg;
+    }.bind(this));
+
     return React.DOM.div(null,
-      AjaxForm(null, this.renderFields()),
+      AjaxForm({ canSubmit: isValid }, this.renderFields(validationMessages)),
       Link({ to: 'login' }, 'I already have an account'));
   }
 });

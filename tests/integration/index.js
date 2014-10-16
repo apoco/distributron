@@ -102,7 +102,10 @@ describe('The Distributron', function() {
   describe('registration form', function() {
 
     beforeEach(function() {
-      return goToUrl('/register');
+      return goToUrl('/register')
+        .then(function() {
+          return waitFor('form');
+        });
     });
 
     it('has a link back to the login form', function() {
@@ -126,8 +129,8 @@ describe('The Distributron', function() {
             '[name="confirm"]',
             '[name="question"]',
             '[name="answer"]',
-            '[type="submit"]']
-          ))
+            '[type="submit"]'
+          ]))
           .spread(function(username, password, confirm, question, answer, submit) {
             inputs = {
               username: username,
@@ -135,7 +138,8 @@ describe('The Distributron', function() {
               confirm: confirm,
               question: question,
               answer: answer,
-              submit: submit };
+              submit: submit
+            };
             return q.all([
               inputs.username.sendKeys('test@test.com'),
               inputs.password.sendKeys('password'),
@@ -147,15 +151,15 @@ describe('The Distributron', function() {
       });
 
       it('ensures that the username is populated', function() {
-        return fillInput(inputs.username, '').then(expectError);
+        return fillInput(inputs.username, '').then(expectValidationError);
       });
 
       it('ensures that the username is an email address', function() {
-        return fillInput(inputs.username, 'not an email address').then(expectError);
+        return fillInput(inputs.username, 'not an email address').then(expectValidationError);
       });
 
       it('ensures that the password is populated', function() {
-        return fillInput(inputs.password, '').then(expectError);
+        return fillInput(inputs.password, '').then(expectValidationError);
       });
 
       it('ensures that the password confirmation matches', function() {
@@ -163,19 +167,23 @@ describe('The Distributron', function() {
           .then(function() {
             return fillInput(inputs.confirm, 'invalidMatch');
           })
-          .then(expectError);
+          .then(expectValidationError);
       });
 
       it('ensures that the security question is populated', function() {
-        return fillInput(inputs.question, '').then(expectError);
+        return fillInput(inputs.question, '').then(expectValidationError);
       });
 
       it('ensures that the security answer is populated', function() {
-        return fillInput(inputs.answer, '').then(expectError);
+        return fillInput(inputs.answer, '').then(expectValidationError);
       });
 
-      function expectError() {
-        return expect(select('form .error')).to.exist;
+      function expectValidationError() {
+        return q(inputs.submit.isEnabled())
+          .then(function(isSubmitEnabled) {
+            expect(select('form .error')).to.exist;
+            expect(isSubmitEnabled).to.be.false;
+          });
       }
     });
   });

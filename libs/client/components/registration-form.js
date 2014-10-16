@@ -94,7 +94,7 @@ module.exports = React.createClass({
       }
     }
   },
-  renderFields: function() {
+  renderFields: function(validationMessages) {
     var self = this;
     return fields.map(function(field) {
       return Field({
@@ -102,14 +102,22 @@ module.exports = React.createClass({
         label: field.label,
         type: field.type,
         value: self.state[field.name],
-        validationMessage: self.validate.call(self, field),
+        validationMessage: validationMessages[field.name],
         onChange: self.handleChange.bind(self, field.name)
       });
     });
   },
   render: function() {
+    var isValid = true;
+    var validationMessages = {};
+    fields.forEach(function(field) {
+      var validationMsg = this.validate(field);
+      isValid = isValid && !validationMsg;
+      validationMessages[field.name] = validationMsg;
+    }.bind(this));
+
     return React.DOM.div(null,
-      AjaxForm(null, this.renderFields()),
+      AjaxForm({ canSubmit: isValid }, this.renderFields(validationMessages)),
       Link({ to: 'login' }, 'I already have an account'));
   }
 });

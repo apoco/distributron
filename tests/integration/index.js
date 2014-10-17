@@ -19,6 +19,7 @@ describe('The Distributron', function() {
   var appProcess;
   var driver;
   var baseUrl = 'http://127.0.0.1:2835/';
+  var dbFile = path.resolve(__dirname, 'test.db');
 
   this.timeout(5000);
 
@@ -27,20 +28,13 @@ describe('The Distributron', function() {
       .withCapabilities(webdriver.Capabilities.chrome())
       .build();
 
-    var dbPath = path.resolve(__dirname, 'test.db');
-    var deleteDb = q.defer();
-    fs.unlink(dbPath, deleteDb.makeNodeResolver());
-
-    return deleteDb.promise
-      .catch(function(err) {
-        // ignore
-      })
+    return deleteDatabase()
       .then(function() {
         var start = q.defer();
         var startupScript = path.resolve(__dirname, '../../index.js');
         appProcess = childProcess.fork(
           startupScript,
-          ['config.json', '--database=sqlite://' + dbPath, '--init=true'],
+          ['config.json', '--database=sqlite://' + dbFile, '--init=true'],
           {silent: true, cwd: __dirname});
         appProcess.stdout.on('data', function() {
           start.resolve();
@@ -272,6 +266,7 @@ describe('The Distributron', function() {
   after(function() {
     appProcess && appProcess.kill();
     driver.quit();
+    return deleteDatabase();
   });
 
   function goToUrl(path) {
@@ -335,5 +330,14 @@ describe('The Distributron', function() {
         email.links = cheerio('a', email.html);
         return email;
       })
+  }
+
+  function deleteDatabase() {
+    var deleteDb = q.defer();
+    fs.unlink(dbFile, deleteDb.makeNodeResolver());
+    return deleteDb.promise
+      .catch(function(err) {
+        // ignore
+      });
   }
 });

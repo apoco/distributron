@@ -1,3 +1,11 @@
 {
-  "port": 2835
+  "port": 2835,
+  "baseUrl": "http://localhost:2835/",
+  "email": {
+    "transport": {
+      "port": 9023,
+      "ignoreTLS": true
+    },
+    "fromAddress": "noreply@gmail.com"
+  }
 }

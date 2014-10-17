@@ -3,11 +3,15 @@
 var expect = require('chai').expect;
 
 var childProcess = require('child_process');
+var fs = require('fs');
 var path = require('path');
 var url = require('url');
 var q = require('q');
 var request = require('request');
 var webdriver = require('selenium-webdriver');
+var smtpTester = require('smtp-tester');
+var config = require('./config.json');
+
 var byCss = webdriver.By.css;
 
 describe('The Distributron', function() {
@@ -18,21 +22,34 @@ describe('The Distributron', function() {
 
   this.timeout(5000);
 
-  before(function(done) {
+  before(function() {
     driver = new webdriver.Builder()
       .withCapabilities(webdriver.Capabilities.chrome())
       .build();
 
-    var startupScript = path.resolve(__dirname, '../../index.js');
-    appProcess = childProcess.fork(startupScript, ['config.json'], {silent: true, cwd: __dirname});
-    appProcess.stdout.on('data', function(data) {
-      process.stdout.write(data);
-      done && done();
-      done = null;
-    });
-    appProcess.stderr.on('data', function(data) {
-      process.stderr.write(data);
-    });
+    var dbPath = path.resolve(__dirname, 'test.db');
+    var deleteDb = q.defer();
+    fs.unlink(dbPath, deleteDb.makeNodeResolver());
+
+    return deleteDb.promise
+      .catch(function(err) {
+        // ignore
+      })
+      .then(function() {
+        var start = q.defer();
+        var startupScript = path.resolve(__dirname, '../../index.js');
+        appProcess = childProcess.fork(
+          startupScript,
+          ['config.json', '--database=sqlite://' + dbPath, '--init=true'],
+          {silent: true, cwd: __dirname});
+        appProcess.stdout.on('data', function() {
+          start.resolve();
+        });
+        appProcess.stdout.pipe(process.stdout);
+        appProcess.stderr.pipe(process.stderr);
+
+        return start.promise;
+      });
   });
 
   describe('startup script', function() {
@@ -119,34 +136,30 @@ describe('The Distributron', function() {
         });
     });
 
+    it('disables the submit button when the form is incomplete', function() {
+      return q(driver.findElement(byCss('form [type="submit"]')))
+        .then(function(element) {
+          return element.isEnabled();
+        })
+        .then(function(isEnabled) {
+          expect(isEnabled).to.be.false;
+        });
+    });
+
     describe('validation', function() {
       var inputs;
 
       beforeEach(function() {
-        return q(select([
-            '[name="username"]',
-            '[name="password"]',
-            '[name="confirm"]',
-            '[name="question"]',
-            '[name="answer"]',
-            '[type="submit"]'
-          ]))
-          .spread(function(username, password, confirm, question, answer, submit) {
-            inputs = {
-              username: username,
-              password: password,
-              confirm: confirm,
-              question: question,
-              answer: answer,
-              submit: submit
-            };
-            return q.all([
-              inputs.username.sendKeys('test@test.com'),
-              inputs.password.sendKeys('password'),
-              inputs.confirm.sendKeys('password'),
-              inputs.question.sendKeys('question'),
-              inputs.answer.sendKeys('answer')
-            ]);
+        return populateForm(
+          {
+            username: 'test@test.com',
+            password: 'password',
+            confirm: 'password',
+            question: 'question',
+            answer: 'answer'
+          })
+          .then(function(inputElements) {
+            inputs = inputElements;
           });
       });
 
@@ -186,6 +199,74 @@ describe('The Distributron', function() {
           });
       }
     });
+
+    it('prevents multiple clicks on the submit button');
+
+    it('sends an activation email after submitting', function() {
+
+      var mailServer = startSMTPServer();
+      var username = 'test' + Math.floor(Math.random() * 1000000) + "@test.io";
+      return populateForm(
+        {
+          username: username,
+          password: 'password',
+          confirm: 'password',
+          question: 'What is love?',
+          answer: "baby don't hurt me"
+        })
+        .then(function(inputs) {
+          return inputs.submit.click();
+        })
+        .then(function() {
+          return receiveAndParseEmail(mailServer);
+        })
+        .then(function(email) {
+          var activationLinks = email.links.filter(function(i, link) {
+            return /\/api\/registrations\/.*?\/activate/.test(link.attribs.href);
+          });
+
+          expect(email.sender).to.equal(config.email.fromAddress);
+          expect(email.receivers).to.have.property(username);
+          expect(activationLinks.length).to.be.ok;
+        })
+        .finally(function() {
+          mailServer.stop();
+        });
+    });
+
+    it('shows a success message on a successful submit');
+    it('rejects registration for an account that already exists');
+    it('re-sends an activation email if registration has already been submitted');
+
+    function populateForm(fieldValues) {
+      var inputs;
+
+      return q(
+        select([
+          '[name="username"]',
+          '[name="password"]',
+          '[name="confirm"]',
+          '[name="question"]',
+          '[name="answer"]',
+          '[type="submit"]'
+        ]))
+        .spread(function(username, password, confirm, question, answer, submit) {
+          inputs = {
+            username: username,
+            password: password,
+            confirm: confirm,
+            question: question,
+            answer: answer,
+            submit: submit
+          };
+          return q.all(Object.keys(fieldValues).map(function(inputName) {
+            return inputs[inputName].sendKeys(fieldValues[inputName]);
+          }));
+        })
+        .then(function() {
+          return inputs;
+        });
+    }
   });
 
   after(function() {
@@ -235,5 +316,24 @@ describe('The Distributron', function() {
           text,
           webdriver.Key.TAB);
       });
+  }
+
+  function startSMTPServer() {
+    var smtpPort = config.email.transport.port || 25;
+    return smtpTester.init(smtpPort);
+  }
+
+  function receiveAndParseEmail(mailServer) {
+    var waitForEmail = q.defer();
+    mailServer.bind(function(address, id, email) {
+      waitForEmail.resolve(email);
+    });
+
+    return waitForEmail.promise
+      .then(function(email) {
+        var cheerio = require('cheerio');
+        email.links = cheerio('a', email.html);
+        return email;
+      })
   }
 });

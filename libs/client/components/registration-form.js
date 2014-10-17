@@ -2,8 +2,9 @@
 
 var React = require('react');
 var AjaxForm = require('./ajax-form');
-var Field = require('./field');
 var Link = require('react-router').Link;
+
+var validator = require('../../common/validator');
 
 var fields = [
   {
@@ -16,7 +17,7 @@ var fields = [
         message: 'You must enter an email address'
       },
       {
-        isValid: function() { return /[^@]+@[^@]+/.test(this.state.username); },
+        isValid: function() { return validator.isEmailAddress(this.state.username); },
         message: 'Invalid email address'
       }
     ]
@@ -69,55 +70,12 @@ var fields = [
 
 module.exports = React.createClass({
   displayName: 'RegistrationForm',
-  getInitialState: function() {
-    return {
-      username: '',
-      password: '',
-      confirmedPassword: '',
-      securityQuestion: '',
-      securityAnswer: '',
-      submitted: false
-    };
-  },
-  handleChange: function(field, e) {
-    var change = { };
-    change[field] = e.target.value.replace(/^\s+|\s+$/g, '');
-    change[field + 'Changed'] = true;
-    this.setState(change);
-  },
-  validate: function(field) {
-    var rules = field.rules || [];
-    for (var i = 0; i < rules.length; i++) {
-      var rule = rules[i];
-      if (this.state[field.name + 'Changed'] && !rule.isValid.call(this)) {
-        return rule.message;
-      }
-    }
-  },
-  renderFields: function(validationMessages) {
-    var self = this;
-    return fields.map(function(field) {
-      return Field({
-        name: field.name,
-        label: field.label,
-        type: field.type,
-        value: self.state[field.name],
-        validationMessage: validationMessages[field.name],
-        onChange: self.handleChange.bind(self, field.name)
-      });
-    });
-  },
   render: function() {
-    var isValid = true;
-    var validationMessages = {};
-    fields.forEach(function(field) {
-      var validationMsg = this.validate(field);
-      isValid = isValid && !validationMsg;
-      validationMessages[field.name] = validationMsg;
-    }.bind(this));
-
     return React.DOM.div(null,
-      AjaxForm({ canSubmit: isValid }, this.renderFields(validationMessages)),
+      AjaxForm({
+        fields: fields,
+        url: '/api/registrations/'
+      }),
       Link({ to: 'login' }, 'I already have an account'));
   }
 });

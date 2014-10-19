@@ -23,6 +23,8 @@ module.exports = React.createClass({
       payload[field.name] = this.state[field.name];
     }.bind(this));
 
+    this.setState({ isSubmitting: true });
+
     reqwest(
       {
         url: this.props.url,
@@ -31,12 +33,14 @@ module.exports = React.createClass({
         contentType: 'application/json',
         data: JSON.stringify(payload)
       })
-      .then(function() {
-
-      })
+      .then(function(res) {
+        this.props.onAfterSubmit(res);
+      }.bind(this))
       .fail(function() {
-
-      });
+      })
+      .always(function() {
+        this.setState({ isSubmitting: false });
+      }.bind(this));
 
     return false;
   },
@@ -73,7 +77,7 @@ module.exports = React.createClass({
     }.bind(this));
 
     var submitProps = { type: 'submit', value: 'Submit' };
-    if (!isValid) {
+    if (!isValid || this.state.isSubmitting) {
       submitProps.disabled = 'disabled';
     }
 

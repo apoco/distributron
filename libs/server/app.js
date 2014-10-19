@@ -21,6 +21,8 @@ domain.create()
       : {};
 
     var app = express();
+    app.use(require('./middleware/session-storage'));
+    app.use(require('./middleware/localization'));
     app.use(require('body-parser').json());
 
     var resourcesPath = path.resolve(__dirname, './resources');

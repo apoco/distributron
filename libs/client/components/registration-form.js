@@ -70,12 +70,21 @@ var fields = [
 
 module.exports = React.createClass({
   displayName: 'RegistrationForm',
+  getInitialState: function() {
+    return { submitted: false };
+  },
+  handleSuccess: function() {
+    this.setState({ submitted: true });
+  },
   render: function() {
-    return React.DOM.div(null,
-      AjaxForm({
-        fields: fields,
-        url: '/api/registrations/'
-      }),
-      Link({ to: 'login' }, 'I already have an account'));
+    return (this.state.submitted
+      ? React.DOM.p(null, require('../strings').REGISTRATION_SUCCESS_MESSAGE)
+      : React.DOM.div(null,
+        AjaxForm({
+          fields: fields,
+          url: '/api/registrations/',
+          onAfterSubmit: this.handleSuccess
+        }),
+        Link({ to: 'login' }, 'I already have an account')));
   }
 });

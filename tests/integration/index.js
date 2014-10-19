@@ -112,7 +112,10 @@ describe('The Distributron', function() {
 
   describe('registration form', function() {
 
+    var mailServer;
+
     beforeEach(function() {
+      mailServer = startSMTPServer();
       return goToUrl('/register')
         .then(function() {
           return waitFor('form');
@@ -194,24 +197,21 @@ describe('The Distributron', function() {
       }
     });
 
-    it('prevents multiple clicks on the submit button');
+    it('prevents multiple clicks on the submit button', function() {
+      return submitValidForm()
+        .then(function(inputs) {
+          return inputs.submit.isEnabled();
+        })
+        .then(function(isEnabled) {
+          expect(isEnabled).to.be.false;
+        });
+    });
 
     it('sends an activation email after submitting', function() {
-
-      var mailServer = startSMTPServer();
-      var username = 'test' + Math.floor(Math.random() * 1000000) + "@test.io";
-      return populateForm(
-        {
-          username: username,
-          password: 'password',
-          confirm: 'password',
-          question: 'What is love?',
-          answer: "baby don't hurt me"
-        })
+      var username;
+      submitValidForm()
         .then(function(inputs) {
-          return inputs.submit.click();
-        })
-        .then(function() {
+          username = inputs.username.getAttribute('value');
           return receiveAndParseEmail(mailServer);
         })
         .then(function(email) {
@@ -224,13 +224,29 @@ describe('The Distributron', function() {
           expect(activationLinks.length).to.be.ok;
         })
         .finally(function() {
-          mailServer.stop();
         });
     });
 
-    it('shows a success message on a successful submit');
+    it('shows a success message on a successful submit', function() {
+      return submitValidForm()
+        .then(function() {
+          return receiveAndParseEmail(mailServer);
+        })
+        .then(function() {
+          return selectMany('form');
+        })
+        .then(function(forms) {
+          expect(forms.length).to.equal(0);
+        });
+    });
+
+    it('localizes the success message');
     it('rejects registration for an account that already exists');
     it('re-sends an activation email if registration has already been submitted');
+
+    afterEach(function() {
+      mailServer.stop();
+    });
 
     function populateForm(fieldValues) {
       var inputs;
@@ -261,6 +277,30 @@ describe('The Distributron', function() {
           return inputs;
         });
     }
+
+    function submitForm(fieldValues) {
+      var inputElements;
+      return populateForm(fieldValues)
+        .then(function(inputs) {
+          inputElements = inputs;
+          return inputs.submit.click();
+        })
+        .then(function() {
+          return inputElements;
+        });
+    }
+
+    function submitValidForm() {
+      var username = 'test' + Math.floor(Math.random() * 1000000) + "@test.io";
+      return submitForm(
+        {
+          username: username,
+          password: 'password',
+          confirm: 'password',
+          question: 'What is love?',
+          answer: "baby don't hurt me"
+        });
+    }
   });
 
   after(function() {
@@ -289,6 +329,10 @@ describe('The Distributron', function() {
     } else {
       return driver.findElement(byCss(selectors));
     }
+  }
+
+  function selectMany(selector) {
+    return driver.findElements(byCss(selector));
   }
 
   function waitFor(selector, timeout) {

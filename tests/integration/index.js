@@ -37,7 +37,7 @@ describe('The Distributron', function() {
           ['config.json', '--database=sqlite://' + dbFile, '--init=true'],
           {silent: true, cwd: __dirname});
         appProcess.stdout.on('data', function() {
-          start.resolve();
+          start.resolve(null);
         });
         appProcess.stdout.pipe(process.stdout);
         appProcess.stderr.pipe(process.stderr);
@@ -108,6 +108,8 @@ describe('The Distributron', function() {
           });
       }
     });
+
+    it('shows a password reset link');
   });
 
   describe('registration form', function() {
@@ -116,10 +118,7 @@ describe('The Distributron', function() {
 
     beforeEach(function() {
       mailServer = startSMTPServer();
-      return goToUrl('/register')
-        .then(function() {
-          return waitFor('form');
-        });
+      return goToRegistrationForm();
     });
 
     it('has a link back to the login form', function() {
@@ -147,14 +146,7 @@ describe('The Distributron', function() {
       var inputs;
 
       beforeEach(function() {
-        return populateForm(
-          {
-            username: 'test@test.com',
-            password: 'password',
-            confirm: 'password',
-            question: 'question',
-            answer: 'answer'
-          })
+        return populateRegistrationForm()
           .then(function(inputElements) {
             inputs = inputElements;
           });
@@ -166,6 +158,27 @@ describe('The Distributron', function() {
 
       it('ensures that the username is an email address', function() {
         return fillInput(inputs.username, 'not an email address').then(expectValidationError);
+      });
+
+      it('ensures that the username is not already in use', function() {
+        var username = inputs.username.getAttribute('value');
+        return inputs.submit.click()
+          .then(function() {
+            return receiveAndParseEmail(mailServer);
+          })
+          .then(function() {
+            return goToRegistrationForm();
+          })
+          .then(function() {
+            return populateRegistrationForm(getRandomRegistrationData(username));
+          })
+          .then(function(newInputs) {
+            inputs = newInputs;
+            return waitFor('form .error');
+          })
+          .then(function() {
+            return expectValidationError();
+          });
       });
 
       it('ensures that the password is populated', function() {
@@ -198,7 +211,7 @@ describe('The Distributron', function() {
     });
 
     it('prevents multiple clicks on the submit button', function() {
-      return submitValidForm()
+      return submitRegistrationForm()
         .then(function(inputs) {
           return inputs.submit.isEnabled();
         })
@@ -209,7 +222,7 @@ describe('The Distributron', function() {
 
     it('sends an activation email after submitting', function() {
       var username;
-      submitValidForm()
+      submitRegistrationForm()
         .then(function(inputs) {
           username = inputs.username.getAttribute('value');
           return receiveAndParseEmail(mailServer);
@@ -228,7 +241,7 @@ describe('The Distributron', function() {
     });
 
     it('shows a success message on a successful submit', function() {
-      return submitValidForm()
+      return submitRegistrationForm()
         .then(function() {
           return receiveAndParseEmail(mailServer);
         })
@@ -241,66 +254,23 @@ describe('The Distributron', function() {
     });
 
     it('localizes the success message');
-    it('rejects registration for an account that already exists');
+
     it('re-sends an activation email if registration has already been submitted');
+    it('shows a message with a dashboard link when following an activation link');
+    it('shows a message with a dashboard link when following an already-followed activation link');
 
     afterEach(function() {
       mailServer.stop();
     });
 
-    function populateForm(fieldValues) {
-      var inputs;
+  });
 
-      return q(
-        select([
-          '[name="username"]',
-          '[name="password"]',
-          '[name="confirm"]',
-          '[name="question"]',
-          '[name="answer"]',
-          '[type="submit"]'
-        ]))
-        .spread(function(username, password, confirm, question, answer, submit) {
-          inputs = {
-            username: username,
-            password: password,
-            confirm: confirm,
-            question: question,
-            answer: answer,
-            submit: submit
-          };
-          return q.all(Object.keys(fieldValues).map(function(inputName) {
-            return inputs[inputName].sendKeys(fieldValues[inputName]);
-          }));
-        })
-        .then(function() {
-          return inputs;
-        });
-    }
+  describe('password reset form', function() {
+    it('exists');
+  });
 
-    function submitForm(fieldValues) {
-      var inputElements;
-      return populateForm(fieldValues)
-        .then(function(inputs) {
-          inputElements = inputs;
-          return inputs.submit.click();
-        })
-        .then(function() {
-          return inputElements;
-        });
-    }
-
-    function submitValidForm() {
-      var username = 'test' + Math.floor(Math.random() * 1000000) + "@test.io";
-      return submitForm(
-        {
-          username: username,
-          password: 'password',
-          confirm: 'password',
-          question: 'What is love?',
-          answer: "baby don't hurt me"
-        });
-    }
+  describe('dashboard', function() {
+    it('exists');
   });
 
   after(function() {
@@ -355,6 +325,74 @@ describe('The Distributron', function() {
           text,
           webdriver.Key.TAB);
       });
+  }
+
+  function goToRegistrationForm() {
+    return goToUrl('/register')
+      .then(function() {
+        return waitFor('form');
+      });
+  }
+
+  function populateRegistrationForm(fieldValues) {
+    fieldValues = fieldValues || getRandomRegistrationData();
+
+    var inputs;
+    return q(
+      select([
+        'form',
+        '[name="username"]',
+        '[name="password"]',
+        '[name="confirm"]',
+        '[name="question"]',
+        '[name="answer"]',
+        '[type="submit"]'
+      ]))
+      .spread(function(form, username, password, confirm, question, answer, submit) {
+        inputs = {
+          form: form,
+          username: username,
+          password: password,
+          confirm: confirm,
+          question: question,
+          answer: answer,
+          submit: submit
+        };
+        var series = q.resolve();
+        Object.keys(fieldValues).forEach(function(inputName) {
+          series = series.then(function() {
+            return fillInput(inputs[inputName], fieldValues[inputName]);
+          })
+        });
+        return series;
+      })
+      .then(function() {
+        return inputs;
+      });
+  }
+
+  function submitRegistrationForm(fieldValues) {
+    fieldValues = fieldValues || getRandomRegistrationData();
+    var inputElements;
+    return populateRegistrationForm(fieldValues)
+      .then(function(inputs) {
+        inputElements = inputs;
+        return inputs.submit.click();
+      })
+      .then(function() {
+        return inputElements;
+      });
+  }
+
+  function getRandomRegistrationData(username) {
+    username = username || 'test' + Math.floor(Math.random() * 1000000) + "@test.io";
+    return {
+      username: username,
+      password: 'password',
+      confirm: 'password',
+      question: 'What is love?',
+      answer: "baby don't hurt me"
+    };
   }
 
   function startSMTPServer() {

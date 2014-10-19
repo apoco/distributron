@@ -3,8 +3,10 @@
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
-
+var reqwest = require('reqwest');
 var validator = require('../../common/validator');
+
+var usernameExistsCache = {};
 
 var fields = [
   {
@@ -19,6 +21,28 @@ var fields = [
       {
         isValid: function() { return validator.isEmailAddress(this.state.username); },
         message: 'Invalid email address'
+      },
+      {
+        message: 'There is already an account using this email address',
+        isValid: function() {
+          if (!this.state.username) {
+            return true;
+          }
+
+          if (this.state.username in usernameExistsCache) {
+            return usernameExistsCache[this.state.username]
+          }
+
+          var self = this;
+          return reqwest({ url: '/api/users/' + encodeURIComponent(this.state.username) })
+            .then(function() {
+              // We got back a success message, so the user exists and the username is in use.
+              return usernameExistsCache[self.state.username] = false;
+            })
+            .catch(function() {
+              return usernameExistsCache[self.state.username] = true;
+            });
+        }
       }
     ]
   },
@@ -82,7 +106,7 @@ module.exports = React.createClass({
       : React.DOM.div(null,
         AjaxForm({
           fields: fields,
-          url: '/api/registrations/',
+          url: '/api/users/',
           onAfterSubmit: this.handleSuccess
         }),
         Link({ to: 'login' }, 'I already have an account')));

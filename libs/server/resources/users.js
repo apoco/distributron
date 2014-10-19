@@ -2,20 +2,22 @@
 
 module.exports = {
   addRoutes: function(app) {
-    app.post('/api/registrations', handleRegistrationsPost)
+    app.post('/api/users', handleUsersPost);
+    app.get('/api/users/:username', handleGetUser);
   }
 };
 
 var crypto = require('crypto');
+var q = require('q');
 var async = require('async');
 var config = require('../config').settings;
 var validator = require('../../common/validator');
 var mailer = require('nodemailer');
 
-function handleRegistrationsPost(req, res, next) {
+function handleUsersPost(req, res, next) {
 
   if (!validator.isEmailAddress(req.body.username)) {
-    return void res.send(422, 'You must provide a valid email address');
+    return void res.status(422).send('You must provide a valid email address');
   }
 
   async.auto({
@@ -35,7 +37,9 @@ function handleRegistrationsPost(req, res, next) {
       'passwordSalt', 'passwordHash', 'answerSalt', 'answerHash', 'activationCode',
       function(next, results) {
         var registration = {
+          id: require('node-uuid').v4(),
           username: req.body.username,
+          status: require('../enums/account-status').pending,
           passwordSalt: results.passwordSalt,
           passwordHash: results.passwordHash,
           securityQuestion: req.body.question,
@@ -44,7 +48,7 @@ function handleRegistrationsPost(req, res, next) {
           activationCode: results.activationCode,
           createdTimestamp: Date.now()
         };
-        require('../repositories').repositories.registrations.create([registration], next);
+        require('../repositories').repositories.users.create([registration], next);
       }
     ],
     sendEmail: ['activationCode', function(next, results) {
@@ -73,6 +77,22 @@ function handleRegistrationsPost(req, res, next) {
 
     res.status(204).end();
   });
+}
+
+function handleGetUser(req, res, next) {
+  var users = require('../repositories').repositories.users;
+
+  var dfd = q.defer();
+  users.find({ username: req.params.username }, dfd.makeNodeResolver());
+  dfd.promise
+    .then(function(users) {
+      if (users.length) {
+        res.json({ username: users[0].username });
+      } else {
+        res.status(404).end();
+      }
+    })
+    .fail(next);
 }
 
 function getRandomBytes(next) {

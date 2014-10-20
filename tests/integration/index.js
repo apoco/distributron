@@ -263,9 +263,48 @@ describe('The Distributron', function() {
   });
 
   describe('activation page', function() {
-    it('shows a login form when a valid activation code is given', function() {
-      var mailServer = startSMTPServer();
+    var mailServer;
 
+    beforeEach(function() {
+      mailServer = startSMTPServer();
+    });
+
+    it('shows a login form when a valid activation code is given', function() {
+      return activateNewUser()
+        .then(function() {
+          return waitForElement('form', 10000);
+        })
+        .then(function(form) {
+          expect(form).to.exist;
+        });
+    });
+
+    it('shows a login form when an already-activated code is given', function() {
+      var activationUrl;
+      return activateNewUser()
+        .then(function(url) {
+          activationUrl = url;
+          return waitForElement('form', 10000);
+        })
+        .then(function() {
+          return goToUrl(activationUrl);
+        })
+        .then(function() {
+          return waitForElement('form', 10000);
+        })
+        .then(function(form) {
+          expect(form).to.exist;
+        });
+    });
+
+    it('shows a failure message for an invalid code');
+
+    afterEach(function() {
+      mailServer.stop();
+    });
+
+    function activateNewUser() {
+      var activationUrl;
       return goToRegistrationForm()
         .then(function() {
           return submitRegistrationForm();
@@ -274,19 +313,13 @@ describe('The Distributron', function() {
           return receiveAndParseActivationEmail(mailServer);
         })
         .then(function(email) {
-          return goToUrl(email.activationLinks[0].attribs.href);
+          activationUrl = email.activationLinks[0].attribs.href;
+          return goToUrl(activationUrl);
         })
         .then(function() {
-          return waitForElement('form', 10000);
-        })
-        .finally(function() {
-          mailServer.stop();
+          return activationUrl;
         });
-    });
-
-    it('shows a login form when an already-activated code is given');
-
-    it('shows a failure message for an invalid code');
+    }
   });
 
   describe('password reset form', function() {

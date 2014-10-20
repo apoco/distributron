@@ -8,6 +8,7 @@ module.exports = {
 
 var async = require('async');
 var usersRepo = require('../data').repositories.users;
+var status = require('../enums/user-status');
 
 function handleActivationPost(req, res, next) {
   if (!req.body.code) {
@@ -25,9 +26,13 @@ function handleActivationPost(req, res, next) {
       }
 
       user = users[0];
-      user.activatedTimestamp = Date.now();
-      user.status = require('../enums/user-status').active;
-      user.save(next);
+      if (user.status === status.pending) {
+        user.activatedTimestamp = Date.now();
+        user.status = status.active;
+        user.save(next);
+      } else {
+        next(null, user);
+      }
     }
   ], function(err) {
     if (err) {

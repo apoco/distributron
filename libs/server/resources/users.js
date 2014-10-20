@@ -7,10 +7,13 @@ module.exports = {
 };
 
 var crypto = require('crypto');
+var q = require('q');
 var async = require('async');
+var mailer = require('nodemailer');
 var config = require('../config').settings;
 var validator = require('../../common/validator');
-var mailer = require('nodemailer');
+var status = require('../enums/user-status');
+var usersRepo = require('../data').repositories.users;
 
 function handleUsersPost(req, res, next) {
 
@@ -19,9 +22,10 @@ function handleUsersPost(req, res, next) {
   }
 
   async.auto({
+    ensureIsNewUser: ensureIsNewUser.bind(null, req),
     user: generateUser.bind(null, req),
     store: ['user', function(next, results) {
-      require('../data').repositories.users.create([results.user], next);
+      usersRepo.create([results.user], next);
     }],
     sendEmail: ['user', function(next, results) {
       sendEmail(results.user, next);
@@ -33,6 +37,27 @@ function handleUsersPost(req, res, next) {
 
     res.status(204).end();
   });
+}
+
+function ensureIsNewUser(req, cb) {
+  findUsername(req.body.username)
+    .then(function(users) {
+      var user = users[0];
+      if (user) {
+        if (user.status === status.pending) {
+          return user.remove(cb);
+        } else {
+          throw { message: 'This account is already activated', status: 422 };
+        }
+      }
+    })
+    .nodeify(cb);
+}
+
+function findUsername(username) {
+  var dfd = q.defer();
+  usersRepo.find({ username: username }, dfd.makeNodeResolver());
+  return dfd.promise;
 }
 
 function generateUser(req, cb) {
@@ -57,7 +82,7 @@ function generateUser(req, cb) {
     var user = {
       id: require('node-uuid').v4(),
       username: req.body.username,
-      status: require('../enums/user-status').pending,
+      status: status.pending,
       passwordSalt: results.passwordSalt,
       passwordHash: results.passwordHash,
       securityQuestion: req.body.question,

@@ -165,12 +165,10 @@ describe('The Distributron', function() {
       });
 
       it('ensures that the username is not already in use', function() {
-        var username = inputs.username.getAttribute('value');
-        return inputs.submit.click()
-          .then(function() {
-            return receiveAndParseActivationEmail(mailServer);
-          })
-          .then(function() {
+        var username;
+        return registerNewUser(mailServer)
+          .then(function(result) {
+            username = result.inputValues.username;
             return goToRegistrationForm();
           })
           .then(function() {
@@ -255,7 +253,26 @@ describe('The Distributron', function() {
 
     it('localizes the success message');
 
-    it('re-sends an activation email if registration has already been submitted');
+    it('regenerates activation codes to replace unactivated codes', function() {
+      var firstUserResults;
+      return getNewUserActivation(mailServer)
+        .then(function(results) {
+          firstUserResults = results;
+          return goToRegistrationForm();
+        })
+        .then(function() {
+          return submitRegistrationForm(firstUserResults.inputValues);
+        })
+        .then(function() {
+          return goToUrl(firstUserResults.activationUrl);
+        })
+        .then(function() {
+          return waitForElement('.error-message');
+        })
+        .then(function(elem) {
+          expect(elem).to.exist;
+        });
+    });
 
     afterEach(function() {
       mailServer.stop();
@@ -447,8 +464,38 @@ describe('The Distributron', function() {
       });
   }
 
+  function getNewUserActivation(mailServer) {
+    var result = {
+      inputValues: getRandomRegistrationData()
+    };
+    return submitRegistrationForm(result.inputValues)
+      .then(function() {
+        return receiveAndParseActivationEmail(mailServer);
+      })
+      .then(function(email) {
+        result.activationUrl = email.activationLinks[0].attribs.href;
+        return result;
+      })
+  }
+
+  function registerNewUser(mailServer) {
+    var result;
+    return getNewUserActivation(mailServer)
+      .then(function(activationData) {
+        result = activationData;
+        return goToUrl(result.activationUrl);
+      })
+      .then(function() {
+        return waitForElement('form');
+      })
+      .then(function() {
+        return result;
+      });
+  }
+
+  var uniqueId = 1;
   function getRandomRegistrationData(username) {
-    username = username || 'test' + Math.floor(Math.random() * 1000000) + "@test.io";
+    username = username || 'test' + (uniqueId++) + "@test.io";
     return {
       username: username,
       password: 'password',

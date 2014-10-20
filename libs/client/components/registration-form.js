@@ -102,8 +102,8 @@ module.exports = React.createClass({
   },
   render: function() {
     return (this.state.submitted
-      ? React.DOM.p(null, require('../strings').REGISTRATION_SUCCESS_MESSAGE)
-      : React.DOM.div(null,
+      ? React.DOM.p(null, require('../strings').registrationSuccessMessage)
+      : React.DOM.div({ id: 'registration-form' },
         AjaxForm({
           fields: fields,
           url: '/api/users/',

@@ -14,6 +14,7 @@ function create(db) {
     securityQuestion: { type: 'text', size: 1000, required: true },
     securityAnswerSalt: { type: 'binary', size: 32, required: true },
     securityAnswerHash: { type: 'binary', size: 32, required: true },
+    activationCode: { type: 'text', size: 36 },
     createdTimestamp: { type: 'date', time: true, required: true },
     activatedTimestamp: { type: 'date', time: true }
   }, {

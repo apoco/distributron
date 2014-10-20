@@ -32,7 +32,7 @@
     "build": "npm run browserify",
     "test": "npm run build && npm run integration-test",
     "start": "npm run build && npm run start-server",
-    "browserify": "./node_modules/browserify/bin/cmd.js libs/client/components/distributron.js libs/client/strings/*.json -o libs/client/static/js/app.js",
+    "browserify": "./node_modules/browserify/bin/cmd.js libs/client/app.js -o libs/client/static/js/app.js",
     "integration-test": "./node_modules/mocha/bin/_mocha tests/integration",
     "start-server": "node ./index.js"
   }

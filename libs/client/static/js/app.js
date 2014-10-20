@@ -1,6 +1,82 @@
 (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 "use strict";
 
+var React = require('react');
+var Router = require('react-router');
+var Route = Router.Route;
+var Routes = Router.Routes;
+var DefaultRoute = Router.DefaultRoute;
+var LoginForm = require('./components/login-form');
+
+React.renderComponent(
+  Routes({ location: 'history' },
+    Route({ name: 'login', path: '/login', handler: LoginForm }),
+    Route({ name: 'register', path: '/register', handler: require('./components/registration-form') }),
+    Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
+    DefaultRoute({ handler: LoginForm })),
+  document.querySelector('body'));
+
+},{"./components/activation-page":2,"./components/login-form":5,"./components/registration-form":6,"react":201,"react-router":25}],2:[function(require,module,exports){
+'use strict';
+
+var React = require('react');
+var LoginForm = require('./login-form');
+var reqwest = require('reqwest');
+var strings = require('../strings');
+
+module.exports = React.createClass({
+  displayName: 'ActivationPage',
+  getInitialState: function() {
+    return {
+      isActivating: true,
+      username: null,
+      isInvalidCode: false,
+      hadInternalError: false,
+      activatingPromise: this.activate()
+    };
+  },
+  activate: function() {
+    var self = this;
+    return reqwest(
+      {
+        url: '/api/activations/',
+        method: 'post',
+        type: 'json',
+        contentType: 'application/json',
+        data: JSON.stringify({ code: self.props.params.code })
+      })
+      .then(function(user) {
+        self.setState({ username: user.username });
+      })
+      .fail(function(err) {
+        if (err.status === 422) {
+          self.setState({ isInvalidCode: true });
+        } else {
+          self.setState({ hadInternalError: true });
+        }
+      })
+      .always(function() {
+        self.setState({ isActivating: false });
+      });
+  },
+  render: function() {
+    if (this.state.isActivating) {
+      return React.DOM.div({ className: 'wait-message' }, strings.accountActivationWaitMessage);
+    } else if (this.state.username) {
+      return React.DOM.div(null,
+        React.DOM.div({ className: 'success-message' }, strings.accountActivationSuccessMessage),
+        LoginForm());
+    } else if (this.state.isInvalidCode) {
+      return React.DOM.div({ className: 'error-message' }, strings.invalidAccountActivationCodeMessage);
+    } else if (this.state.hadInternalError) {
+      return React.DOM.div({ className: 'error-message' }, strings.internalErrorMessage);
+    }
+  }
+});
+
+},{"../strings":7,"./login-form":5,"react":201,"reqwest":202}],3:[function(require,module,exports){
+"use strict";
+
 var q = require('q');
 var React = require('react');
 var Field = require('./field');
@@ -127,34 +203,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"./field":3,"q":15,"react":201,"reqwest":202}],2:[function(require,module,exports){
-"use strict";
-
-var React = require('react');
-var Router = require('react-router');
-var Route = Router.Route;
-var Routes = Router.Routes;
-var DefaultRoute = Router.DefaultRoute;
-var LoginForm = require('./login-form');
-var RegistrationForm = require('./registration-form');
-
-var Distributron = React.createClass({
-  displayName: 'Distributron',
-  render: function() {
-    return Routes({ location: 'history' },
-      Route({ name: 'login', path: '/login', handler: LoginForm }),
-      Route({ name: 'register', path: '/register', handler: RegistrationForm }),
-      DefaultRoute({ handler: LoginForm }));
-  }
-});
-
-React.renderComponent(
-  Distributron(null),
-  document.querySelector('body'));
-
-module.exports = Distributron;
-
-},{"./login-form":4,"./registration-form":5,"react":201,"react-router":25}],3:[function(require,module,exports){
+},{"./field":4,"q":15,"react":201,"reqwest":202}],4:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -180,7 +229,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"react":201}],4:[function(require,module,exports){
+},{"react":201}],5:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -209,7 +258,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"./ajax-form":1,"react":201,"react-router":25}],5:[function(require,module,exports){
+},{"./ajax-form":3,"react":201,"react-router":25}],6:[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -314,8 +363,8 @@ module.exports = React.createClass({
   },
   render: function() {
     return (this.state.submitted
-      ? React.DOM.p(null, require('../strings').REGISTRATION_SUCCESS_MESSAGE)
-      : React.DOM.div(null,
+      ? React.DOM.p(null, require('../strings').registrationSuccessMessage)
+      : React.DOM.div({ id: 'registration-form' },
         AjaxForm({
           fields: fields,
           url: '/api/users/',
@@ -325,16 +374,16 @@ module.exports = React.createClass({
   }
 });
 
-},{"../../common/validator":8,"../strings":7,"./ajax-form":1,"react":201,"react-router":25,"reqwest":202}],6:[function(require,module,exports){
+},{"../../common/validator":8,"../strings":7,"./ajax-form":3,"react":201,"react-router":25,"reqwest":202}],7:[function(require,module,exports){
 module.exports={
-  "REGISTRATION_SUCCESS_MESSAGE": "Your registration has been submitted. You should receive your activation email shortly."
+  "registrationSuccessMessage": "Your registration has been submitted. You should receive your activation email shortly.",
+  "accountActivationWaitMessage": "Activating your account...",
+  "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
+  "invalidAccountActivationCodeMessage": "Invalid access code.",
+  "internalErrorMessage": "Sorry, something went wrong. It's not you, it's us. Please try again later."
 }
 
-},{}],7:[function(require,module,exports){
-'use strict';
-
-module.exports = require('./default');
-},{"./default":6}],8:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 "use strict";
 
 var validator = require('validator');
@@ -27387,4 +27436,4 @@ module.exports = require('./lib/React');
 
 });
 
-},{}]},{},[2,6]);
+},{}]},{},[1]);

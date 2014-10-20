@@ -21,7 +21,7 @@ describe('The Distributron', function() {
   var baseUrl = 'http://127.0.0.1:2835/';
   var dbFile = path.resolve(__dirname, 'test.db');
 
-  this.timeout(5000);
+  this.timeout(30000);
 
   before(function() {
     driver = new webdriver.Builder()
@@ -36,6 +36,10 @@ describe('The Distributron', function() {
           startupScript,
           ['config.json', '--database=sqlite://' + dbFile, '--init=true'],
           {silent: true, cwd: __dirname});
+        appProcess.on('error', function(err) {
+          console.error(err.stack);
+          start.reject(err);
+        });
         appProcess.stdout.on('data', function() {
           start.resolve(null);
         });
@@ -62,8 +66,8 @@ describe('The Distributron', function() {
       return goToUrl('/')
         .then(function() {
           return q.all([
-            waitFor('input[name="username"]', 5000),
-            waitFor('input[name="password"]', 5000)
+            waitForElement('input[name="username"]', 5000),
+            waitForElement('input[name="password"]', 5000)
           ]);
         })
         .spread(function(username, password) {
@@ -104,7 +108,7 @@ describe('The Distributron', function() {
       function getRegistrationLink() {
         return goToUrl('/')
           .then(function() {
-            return waitFor('a[href="/register"]');
+            return waitForElement('a[href="/register"]');
           });
       }
     });
@@ -164,7 +168,7 @@ describe('The Distributron', function() {
         var username = inputs.username.getAttribute('value');
         return inputs.submit.click()
           .then(function() {
-            return receiveAndParseEmail(mailServer);
+            return receiveAndParseActivationEmail(mailServer);
           })
           .then(function() {
             return goToRegistrationForm();
@@ -174,7 +178,7 @@ describe('The Distributron', function() {
           })
           .then(function(newInputs) {
             inputs = newInputs;
-            return waitFor('form .error');
+            return waitForElement('form .error');
           })
           .then(function() {
             return expectValidationError();
@@ -225,13 +229,9 @@ describe('The Distributron', function() {
       submitRegistrationForm()
         .then(function(inputs) {
           username = inputs.username.getAttribute('value');
-          return receiveAndParseEmail(mailServer);
+          return receiveAndParseActivationEmail(mailServer);
         })
         .then(function(email) {
-          var activationLinks = email.links.filter(function(i, link) {
-            return /\/api\/registrations\/.*?\/activate/.test(link.attribs.href);
-          });
-
           expect(email.sender).to.equal(config.email.fromAddress);
           expect(email.receivers).to.have.property(username);
           expect(activationLinks.length).to.be.ok;
@@ -243,7 +243,7 @@ describe('The Distributron', function() {
     it('shows a success message on a successful submit', function() {
       return submitRegistrationForm()
         .then(function() {
-          return receiveAndParseEmail(mailServer);
+          return receiveAndParseActivationEmail(mailServer);
         })
         .then(function() {
           return selectMany('form');
@@ -256,13 +256,37 @@ describe('The Distributron', function() {
     it('localizes the success message');
 
     it('re-sends an activation email if registration has already been submitted');
-    it('shows a message with a dashboard link when following an activation link');
-    it('shows a message with a dashboard link when following an already-followed activation link');
 
     afterEach(function() {
       mailServer.stop();
     });
+  });
 
+  describe('activation page', function() {
+    it('shows a login form when a valid activation code is given', function() {
+      var mailServer = startSMTPServer();
+
+      return goToRegistrationForm()
+        .then(function() {
+          return submitRegistrationForm();
+        })
+        .then(function() {
+          return receiveAndParseActivationEmail(mailServer);
+        })
+        .then(function(email) {
+          return goToUrl(email.activationLinks[0].attribs.href);
+        })
+        .then(function() {
+          return waitForElement('form', 10000);
+        })
+        .finally(function() {
+          mailServer.stop();
+        });
+    });
+
+    it('shows a login form when an already-activated code is given');
+
+    it('shows a failure message for an invalid code');
   });
 
   describe('password reset form', function() {
@@ -293,9 +317,7 @@ describe('The Distributron', function() {
 
   function select(selectors) {
     if (selectors instanceof Array) {
-      return q.all(selectors.map(function(selector) {
-        return driver.findElement(byCss(selector));
-      }));
+      return q.all(selectors.map(select));
     } else {
       return driver.findElement(byCss(selectors));
     }
@@ -305,16 +327,22 @@ describe('The Distributron', function() {
     return driver.findElements(byCss(selector));
   }
 
-  function waitFor(selector, timeout) {
-    selector = byCss(selector);
-    return driver
-      .wait(function() {
-        return driver.findElement(selector).isDisplayed();
-      }, timeout || 2000)
-      .then(function() {
-        return driver.findElement(selector);
-      });
+  function waitFor(fn, timeout) {
+    return driver.wait(fn, timeout || 2000);
   }
+
+  function waitForElement(selector, timeout) {
+    return waitFor(
+      function() {
+        return driver.findElements(byCss(selector))
+          .then(function(elems) {
+            return !!elems.length;
+          });
+      }, timeout)
+      .then(function() {
+        return select(selector);
+      });
+}
 
   function fillInput(input, text) {
     return q(input.click())
@@ -330,7 +358,7 @@ describe('The Distributron', function() {
   function goToRegistrationForm() {
     return goToUrl('/register')
       .then(function() {
-        return waitFor('form');
+        return waitForElement('#registration-form');
       });
   }
 
@@ -338,8 +366,8 @@ describe('The Distributron', function() {
     fieldValues = fieldValues || getRandomRegistrationData();
 
     var inputs;
-    return q(
-      select([
+    return select(
+      [
         'form',
         '[name="username"]',
         '[name="password"]',
@@ -347,7 +375,7 @@ describe('The Distributron', function() {
         '[name="question"]',
         '[name="answer"]',
         '[type="submit"]'
-      ]))
+      ])
       .spread(function(form, username, password, confirm, question, answer, submit) {
         inputs = {
           form: form,
@@ -372,12 +400,14 @@ describe('The Distributron', function() {
   }
 
   function submitRegistrationForm(fieldValues) {
-    fieldValues = fieldValues || getRandomRegistrationData();
     var inputElements;
     return populateRegistrationForm(fieldValues)
       .then(function(inputs) {
         inputElements = inputs;
-        return inputs.submit.click();
+        return waitFor(function() { return inputElements.submit.isEnabled(); });
+      })
+      .then(function() {
+        return inputElements.submit.click();
       })
       .then(function() {
         return inputElements;
@@ -400,7 +430,7 @@ describe('The Distributron', function() {
     return smtpTester.init(smtpPort);
   }
 
-  function receiveAndParseEmail(mailServer) {
+  function receiveAndParseActivationEmail(mailServer) {
     var waitForEmail = q.defer();
     mailServer.bind(function(address, id, email) {
       waitForEmail.resolve(email);
@@ -409,7 +439,9 @@ describe('The Distributron', function() {
     return waitForEmail.promise
       .then(function(email) {
         var cheerio = require('cheerio');
-        email.links = cheerio('a', email.html);
+        email.activationLinks = cheerio('a', email.html).filter(function(i, link) {
+          return /\/activate\//.test(link.attribs.href);
+        });
         return email;
       })
   }

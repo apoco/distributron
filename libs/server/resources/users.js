@@ -3,12 +3,10 @@
 module.exports = {
   addRoutes: function(app) {
     app.post('/api/users', handleUsersPost);
-    app.get('/api/users/:username', handleGetUser);
   }
 };
 
 var crypto = require('crypto');
-var q = require('q');
 var async = require('async');
 var config = require('../config').settings;
 var validator = require('../../common/validator');
@@ -21,54 +19,12 @@ function handleUsersPost(req, res, next) {
   }
 
   async.auto({
-    passwordSalt: getRandomBytes,
-    answerSalt: getRandomBytes,
-    activationCodeBytes: getRandomBytes,
-    activationCode: ['activationCodeBytes', function(next, results) {
-      next(null, results.activationCodeBytes.toString('hex'));
+    user: generateUser.bind(null, req),
+    store: ['user', function(next, results) {
+      require('../data').repositories.users.create([results.user], next);
     }],
-    passwordHash: ['passwordSalt', function(next, results) {
-      getSaltedHash(results.passwordSalt, req.body.password, next);
-    }],
-    answerHash: ['answerSalt', function(next, results) {
-      getSaltedHash(results.answerSalt, req.body.answer, next);
-    }],
-    storeRegistration: [
-      'passwordSalt', 'passwordHash', 'answerSalt', 'answerHash', 'activationCode',
-      function(next, results) {
-        var registration = {
-          id: require('node-uuid').v4(),
-          username: req.body.username,
-          status: require('../enums/account-status').pending,
-          passwordSalt: results.passwordSalt,
-          passwordHash: results.passwordHash,
-          securityQuestion: req.body.question,
-          securityAnswerSalt: results.answerSalt,
-          securityAnswerHash: results.answerHash,
-          activationCode: results.activationCode,
-          createdTimestamp: Date.now()
-        };
-        require('../repositories').repositories.users.create([registration], next);
-      }
-    ],
-    sendEmail: ['activationCode', function(next, results) {
-      var activationUrl = config.baseUrl + 'api/registrations/' + results.activationCode + '/activate';
-      var smtpTransport = require('nodemailer-smtp-transport');
-      var transporter = mailer.createTransport(smtpTransport(config.email.transport));
-      var html =
-        '<html>' +
-        ' <body>' +
-        '  <p>To complete your account activation click on the following link:</p>' +
-        '  <a href="' + activationUrl + '">' + activationUrl + '</a>' +
-        ' </body>' +
-        '</html>';
-      var mailOptions = {
-        from: config.email.fromAddress,
-        to: req.body.username,
-        subject: 'Activate your account',
-        html: html
-      };
-      transporter.sendMail(mailOptions, next);
+    sendEmail: ['user', function(next, results) {
+      sendEmail(results.user, next);
     }]
   }, function(err) {
     if (err) {
@@ -79,20 +35,59 @@ function handleUsersPost(req, res, next) {
   });
 }
 
-function handleGetUser(req, res, next) {
-  var users = require('../repositories').repositories.users;
+function generateUser(req, cb) {
+  async.auto({
+    passwordSalt: getRandomBytes,
+    answerSalt: getRandomBytes,
+    activationCodeBytes: getRandomBytes,
+    activationCode: ['activationCodeBytes', function (next, results) {
+      next(null, results.activationCodeBytes.toString('hex'));
+    }],
+    passwordHash: ['passwordSalt', function (next, results) {
+      getSaltedHash(results.passwordSalt, req.body.password, next);
+    }],
+    answerHash: ['answerSalt', function (next, results) {
+      getSaltedHash(results.answerSalt, req.body.answer, next);
+    }]
+  }, function(err, results) {
+    if (err) {
+      return void cb(err);
+    }
 
-  var dfd = q.defer();
-  users.find({ username: req.params.username }, dfd.makeNodeResolver());
-  dfd.promise
-    .then(function(users) {
-      if (users.length) {
-        res.json({ username: users[0].username });
-      } else {
-        res.status(404).end();
-      }
-    })
-    .fail(next);
+    var user = {
+      id: require('node-uuid').v4(),
+      username: req.body.username,
+      status: require('../enums/user-status').pending,
+      passwordSalt: results.passwordSalt,
+      passwordHash: results.passwordHash,
+      securityQuestion: req.body.question,
+      securityAnswerSalt: results.answerSalt,
+      securityAnswerHash: results.answerHash,
+      activationCode: results.activationCode,
+      createdTimestamp: Date.now()
+    };
+    cb(null, user);
+  });
+}
+
+function sendEmail(user, cb) {
+  var activationUrl = config.baseUrl + 'activate/' + encodeURIComponent(user.activationCode);
+  var smtpTransport = require('nodemailer-smtp-transport');
+  var transporter = mailer.createTransport(smtpTransport(config.email.transport));
+  var html =
+    '<html>' +
+    ' <body>' +
+    '  <p>To complete your account activation click on the following link:</p>' +
+    '  <a href="' + activationUrl + '">' + activationUrl + '</a>' +
+    ' </body>' +
+    '</html>';
+  var mailOptions = {
+    from: config.email.fromAddress,
+    to: user.username,
+    subject: 'Activate your account',
+    html: html
+  };
+  transporter.sendMail(mailOptions, cb);
 }
 
 function getRandomBytes(next) {

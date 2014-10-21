@@ -314,7 +314,15 @@ describe('The Distributron', function() {
         });
     });
 
-    it('shows a failure message for an invalid code');
+    it('shows a failure message for an invalid code', function() {
+      return goToUrl('/activate/some-invalid-code')
+        .then(function() {
+          return waitForElement('.error-message');
+        })
+        .then(function(element) {
+          expect(element).to.exist;
+        });
+    });
 
     afterEach(function() {
       mailServer.stop();

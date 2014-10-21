@@ -1,5 +1,6 @@
 "use strict";
 
+var Promise = require('bluebird');
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
@@ -33,14 +34,15 @@ var fields = [
             return usernameExistsCache[this.state.username]
           }
 
-          var self = this;
-          return reqwest({ url: '/api/users/' + encodeURIComponent(this.state.username) })
+          return Promise
+            .bind(this)
+            .return(reqwest({ url: '/api/users/' + encodeURIComponent(this.state.username) }))
             .then(function() {
               // We got back a success message, so the user exists and the username is in use.
-              return usernameExistsCache[self.state.username] = false;
+              return usernameExistsCache[this.state.username] = false;
             })
             .catch(function() {
-              return usernameExistsCache[self.state.username] = true;
+              return usernameExistsCache[this.state.username] = true;
             });
         }
       }

@@ -1,22 +1,22 @@
 {
   "name": "distributron",
   "version": "0.0.1",
+  "repository": "https://github.com/apoco/distributron",
   "dependencies": {
     "express": "~4.9.7",
     "yargs": "~1.3.2",
-    "q": "~1.0.1",
     "react": "~0.11.2",
     "react-router": "~0.9.4",
     "nodemailer": "~1.3.0",
     "validator": "~3.20.0",
     "orm": "~2.1.19",
     "require-directory": "~2.0.0",
-    "async": "~0.9.0",
     "nodemailer-smtp-transport": "~0.1.13",
     "reqwest": "~1.1.4",
     "body-parser": "~1.9.0",
     "continuation-local-storage": "~3.1.1",
-    "node-uuid": "~1.4.1"
+    "node-uuid": "~1.4.1",
+    "bluebird": "~2.3.6"
   },
   "devDependencies": {
     "mocha": "~1.21.5",

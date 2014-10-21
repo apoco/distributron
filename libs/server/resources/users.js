@@ -6,14 +6,14 @@ module.exports = {
   }
 };
 
-var crypto = require('crypto');
-var q = require('q');
-var async = require('async');
+var Promise = require('bluebird');
+var crypto = Promise.promisifyAll(require('crypto'));
 var mailer = require('nodemailer');
 var config = require('../config').settings;
 var validator = require('../../common/validator');
 var status = require('../enums/user-status');
-var usersRepo = require('../data').repositories.users;
+var usersRepo = Promise.promisifyAll(require('../data').repositories.users);
+var UserAlreadyActivatedError = require('../errors/user-already-activated');
 
 function handleUsersPost(req, res, next) {
 
@@ -21,84 +21,66 @@ function handleUsersPost(req, res, next) {
     return void res.status(422).send('You must provide a valid email address');
   }
 
-  async.auto({
-    ensureIsNewUser: ensureIsNewUser.bind(null, req),
-    user: generateUser.bind(null, req),
-    store: ['user', function(next, results) {
-      usersRepo.create([results.user], next);
-    }],
-    sendEmail: ['user', function(next, results) {
-      sendEmail(results.user, next);
-    }]
-  }, function(err) {
-    if (err) {
+  ensureIsNewUser(req)
+    .then(generateUser.bind(null, req))
+    .then(function(user) {
+      return Promise.all([
+        usersRepo.createAsync(user),
+        sendEmail(user)
+      ]);
+    })
+    .then(function() {
+      res.status(204).end();
+    })
+    .catch(UserAlreadyActivatedError, function(err) {
+      res.status(422).send(err.message);
+    })
+    .catch(function(err) {
       return void next(err);
-    }
-
-    res.status(204).end();
-  });
+    });
 }
 
-function ensureIsNewUser(req, cb) {
-  findUsername(req.body.username)
-    .then(function(users) {
-      var user = users[0];
+function ensureIsNewUser(req) {
+  return usersRepo.findAsync({ username: req.body.username })
+    .get(0)
+    .then(function(user) {
       if (user) {
         if (user.status === status.pending) {
-          return user.remove(cb);
+          return Promise.promisify(user.remove, user).call();
         } else {
-          throw { message: 'This account is already activated', status: 422 };
+          throw new UserAlreadyActivatedError('This account is already activated');
         }
       }
-    })
-    .nodeify(cb);
+    });
 }
 
-function findUsername(username) {
-  var dfd = q.defer();
-  usersRepo.find({ username: username }, dfd.makeNodeResolver());
-  return dfd.promise;
-}
-
-function generateUser(req, cb) {
-  async.auto({
-    passwordSalt: getRandomBytes,
-    answerSalt: getRandomBytes,
-    activationCodeBytes: getRandomBytes,
-    activationCode: ['activationCodeBytes', function (next, results) {
-      next(null, results.activationCodeBytes.toString('hex'));
-    }],
-    passwordHash: ['passwordSalt', function (next, results) {
-      getSaltedHash(results.passwordSalt, req.body.password, next);
-    }],
-    answerHash: ['answerSalt', function (next, results) {
-      getSaltedHash(results.answerSalt, req.body.answer, next);
-    }]
-  }, function(err, results) {
-    if (err) {
-      return void cb(err);
-    }
-
-    var user = {
-      id: require('node-uuid').v4(),
-      username: req.body.username,
-      status: status.pending,
-      passwordSalt: results.passwordSalt,
-      passwordHash: results.passwordHash,
-      securityQuestion: req.body.question,
-      securityAnswerSalt: results.answerSalt,
-      securityAnswerHash: results.answerHash,
-      activationCode: results.activationCode,
-      createdTimestamp: Date.now()
-    };
-    cb(null, user);
+function generateUser(req) {
+  var passwordSalt = getRandomBytes(),
+    answerSalt = getRandomBytes(),
+    passwordHash = Promise.join(passwordSalt, function (salt) {
+      return getSaltedHash(salt, req.body.password);
+    }),
+    answerHash = Promise.join(answerSalt, function (salt) {
+      return getSaltedHash(salt, req.body.answer);
+    });
+  return Promise.props({
+    id: require('node-uuid').v4(),
+    username: req.body.username,
+    status: status.pending,
+    passwordSalt: passwordSalt,
+    passwordHash: passwordHash,
+    securityQuestion: req.body.question,
+    securityAnswerSalt: answerSalt,
+    securityAnswerHash: answerHash,
+    activationCode: getRandomBytes().call('toString', 'hex'),
+    createdTimestamp: Date.now()
   });
 }
 
-function sendEmail(user, cb) {
+function sendEmail(user) {
   var activationUrl = config.baseUrl + 'activate/' + encodeURIComponent(user.activationCode);
   var smtpTransport = require('nodemailer-smtp-transport');
-  var transporter = mailer.createTransport(smtpTransport(config.email.transport));
+  var transporter = Promise.promisifyAll(mailer.createTransport(smtpTransport(config.email.transport)));
   var html =
     '<html>' +
     ' <body>' +
@@ -112,23 +94,25 @@ function sendEmail(user, cb) {
     subject: 'Activate your account',
     html: html
   };
-  transporter.sendMail(mailOptions, cb);
+  return transporter.sendMailAsync(mailOptions);
 }
 
-function getRandomBytes(next) {
-  crypto.randomBytes(32, next);
+function getRandomBytes() {
+  return crypto.randomBytesAsync(32);
 }
 
-function getSaltedHash(salt, payload, next) {
-  var chunks = [];
-  var hash = crypto.createHash('sha256')
-    .on('error', next)
-    .on('data', function(chunk) {
-      chunks.push(chunk);
-    })
-    .on('end', function() {
-      next(null, Buffer.concat(chunks));
-    });
-  hash.write(salt);
-  hash.end(payload);
+function getSaltedHash(salt, payload) {
+  return new Promise(function(resolve, reject) {
+    var chunks = [];
+    var hash = crypto.createHash('sha256')
+      .on('error', reject)
+      .on('data', function(chunk) {
+        chunks.push(chunk);
+      })
+      .on('end', function() {
+        resolve(Buffer.concat(chunks));
+      });
+    hash.write(salt);
+    hash.end(payload);
+  });
 }

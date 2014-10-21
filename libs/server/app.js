@@ -1,10 +1,10 @@
 "use strict";
 
+var Promise = require('bluebird');
 var domain = require('domain');
 var path = require('path');
-var async = require('async');
 var express = require('express');
-var orm = require('orm');
+var orm = Promise.promisifyAll(require('orm'));
 
 domain.create()
   .on('error', function(err) {
@@ -12,24 +12,26 @@ domain.create()
     process.exit();
   })
   .run(function() {
-    async.auto({
-      config: initConfig,
-      app: ['database', initApp],
-      database: ['config', initDatabase]
-    }, function(err, results) {
-      if (err) {
-        return void console.error('Failed to start:', err);
-      }
-
-      results.app.listen(results.config.port);
-
-      // Important: integration tests are waiting for something from stdout before continuing on with setup;
-      // must leave this here.
-      console.log('Listening at http://localhost:' + results.config.port);
-    });
+    Promise.bind({})
+      .then(initConfig)
+      .then(function(config) {
+        this.config = config;
+        return initDatabase(config);
+      })
+      .then(function() {
+        return initApp();
+      })
+      .then(function(app) {
+        app.listen(this.config.port);
+        console.log('Listening at http://localhost:' + this.config.port);
+      })
+      .catch(function(err) {
+        console.error('Failed to start:', err.stack);
+      })
+      .done();
   });
 
-function initConfig(cb) {
+function initConfig() {
   var config = require('./config');
   var args = require('yargs').argv;
   var configPath = args._[0];
@@ -42,13 +44,23 @@ function initConfig(cb) {
   config.settings.init = args.init;
 
   if (!config.settings.database) {
-    return void cb(new Error('Missing database argument or config setting'));
+    throw new Error('Missing database argument or config setting');
   }
 
-  cb(null, config.settings);
+  return config.settings;
 }
 
-function initApp(cb) {
+function initDatabase(config) {
+  return orm.connectAsync(config.database)
+    .then(function(db) {
+      require('./data').initialize(db);
+      if (config.init) {
+        return Promise.promisify(db.sync, db).call();
+      }
+    });
+}
+
+function initApp() {
   var app = express();
   app.use(require('./middleware/session-storage'));
   app.use(require('./middleware/localization'));
@@ -65,20 +77,5 @@ function initApp(cb) {
   app.use(require('./middleware/ui'));
   app.use(require('./middleware/error-handler'));
 
-  cb(null, app);
-}
-
-function initDatabase(cb, options) {
-  async.waterfall([
-    function(next) {
-      orm.connect(options.config.database, next);
-    },
-    function(db, next) {
-      require('./data').initialize(db);
-      if (options.config.init) {
-        return void db.sync(next);
-      }
-      next(null, db);
-    }
-  ], cb);
+  return app;
 }

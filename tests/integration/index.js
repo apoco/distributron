@@ -2,11 +2,11 @@
 
 var expect = require('chai').expect;
 
+var Promise = require('bluebird');
 var childProcess = require('child_process');
-var fs = require('fs');
+var fs = Promise.promisifyAll(require('fs'));
 var path = require('path');
 var url = require('url');
-var q = require('q');
 var request = require('request');
 var webdriver = require('selenium-webdriver');
 var smtpTester = require('smtp-tester');
@@ -30,23 +30,22 @@ describe('The Distributron', function() {
 
     return deleteDatabase()
       .then(function() {
-        var start = q.defer();
-        var startupScript = path.resolve(__dirname, '../../index.js');
-        appProcess = childProcess.fork(
-          startupScript,
-          ['config.json', '--database=sqlite://' + dbFile, '--init=true'],
-          {silent: true, cwd: __dirname});
-        appProcess.on('error', function(err) {
-          console.error(err.stack);
-          start.reject(err);
+        return new Promise(function(resolve, reject) {
+          var startupScript = path.resolve(__dirname, '../../index.js');
+          appProcess = childProcess.fork(
+            startupScript,
+            ['config.json', '--database=sqlite://' + dbFile, '--init=true'],
+            {silent: true, cwd: __dirname});
+          appProcess.on('error', function(err) {
+            console.error(err.stack);
+            reject(err);
+          });
+          appProcess.stdout.on('data', function() {
+            resolve(null);
+          });
+          appProcess.stdout.pipe(process.stdout);
+          appProcess.stderr.pipe(process.stderr);
         });
-        appProcess.stdout.on('data', function() {
-          start.resolve(null);
-        });
-        appProcess.stdout.pipe(process.stdout);
-        appProcess.stderr.pipe(process.stderr);
-
-        return start.promise;
       });
   });
 
@@ -70,8 +69,8 @@ describe('The Distributron', function() {
     });
 
     it('has a username and password input', function() {
-      return q.all(
-        [
+      return Promise
+        .all([
           waitForElement('input[name="username"]', 5000),
           waitForElement('input[name="password"]', 5000)
         ])
@@ -137,14 +136,14 @@ describe('The Distributron', function() {
     });
 
     it('does not validate before the form changes', function() {
-      return q(driver.findElements(byCss('form .error')))
+      return driver.findElements(byCss('form .error'))
         .then(function(elements) {
           expect(elements.length).to.equal(0);
         });
     });
 
     it('disables the submit button when the form is incomplete', function() {
-      return q(driver.findElement(byCss('form [type="submit"]')))
+      return driver.findElement(byCss('form [type="submit"]'))
         .then(function(element) {
           return element.isEnabled();
         })
@@ -211,7 +210,7 @@ describe('The Distributron', function() {
       });
 
       function expectValidationError() {
-        return q(inputs.submit.isEnabled())
+        return inputs.submit.isEnabled()
           .then(function(isSubmitEnabled) {
             expect(select('form .error')).to.exist;
             expect(isSubmitEnabled).to.be.false;
@@ -240,8 +239,6 @@ describe('The Distributron', function() {
           expect(email.sender).to.equal(config.email.fromAddress);
           expect(email.receivers).to.have.property(username);
           expect(activationLinks.length).to.be.ok;
-        })
-        .finally(function() {
         });
     });
 
@@ -370,19 +367,19 @@ describe('The Distributron', function() {
 
   function goToUrl(path) {
     var absoluteUrl = url.resolve(baseUrl, path);
-    return q(driver.getCurrentUrl())
+    return driver.getCurrentUrl()
       .then(function(currentUrl) {
         if (currentUrl === absoluteUrl) {
-          return q(driver.navigate().refresh());
+          return driver.navigate().refresh();
         } else {
-          return q(driver.get(absoluteUrl));
+          return driver.get(absoluteUrl);
         }
       });
   }
 
   function select(selectors) {
     if (selectors instanceof Array) {
-      return q.all(selectors.map(select));
+      return Promise.map(selectors, select).all();
     } else {
       return driver.findElement(byCss(selectors));
     }
@@ -393,24 +390,24 @@ describe('The Distributron', function() {
   }
 
   function waitFor(fn, timeout) {
-    return driver.wait(fn, timeout || 2000);
+    return Promise.resolve(driver.wait(fn, timeout || 2000));
   }
 
   function waitForElement(selector, timeout) {
-    return q(waitFor(
+    return waitFor(
       function() {
         return driver.findElements(byCss(selector))
           .then(function(elems) {
             return !!elems.length;
           });
-      }, timeout))
+      }, timeout)
       .then(function() {
         return select(selector);
       });
 }
 
   function fillInput(input, text) {
-    return q(input.click())
+    return input.click()
       .then(function() {
         return input.sendKeys(
           webdriver.Key.chord(webdriver.Key.CONTROL, 'a'),
@@ -428,11 +425,9 @@ describe('The Distributron', function() {
   }
 
   function populateRegistrationForm(fieldValues) {
-    fieldValues = fieldValues || getRandomRegistrationData();
-
-    var inputs;
-    return select(
-      [
+    return Promise
+      .bind({ fieldValues: fieldValues || getRandomRegistrationData() })
+      .return(select([
         'form',
         '[name="username"]',
         '[name="password"]',
@@ -440,9 +435,9 @@ describe('The Distributron', function() {
         '[name="question"]',
         '[name="answer"]',
         '[type="submit"]'
-      ])
+      ]))
       .spread(function(form, username, password, confirm, question, answer, submit) {
-        inputs = {
+        this.inputs = {
           form: form,
           username: username,
           password: password,
@@ -451,31 +446,30 @@ describe('The Distributron', function() {
           answer: answer,
           submit: submit
         };
-        var series = q.resolve();
-        Object.keys(fieldValues).forEach(function(inputName) {
-          series = series.then(function() {
-            return fillInput(inputs[inputName], fieldValues[inputName]);
-          })
-        });
-        return series;
+        return Object.keys(this.fieldValues);
       })
+      .map(function(inputName) {
+        return fillInput(this.inputs[inputName], this.fieldValues[inputName]);
+      })
+      .all()
       .then(function() {
-        return inputs;
+        return this.inputs;
       });
   }
 
   function submitRegistrationForm(fieldValues) {
-    var inputElements;
-    return populateRegistrationForm(fieldValues)
+    return Promise
+      .bind({})
+      .return(populateRegistrationForm(fieldValues))
       .then(function(inputs) {
-        inputElements = inputs;
-        return waitFor(function() { return inputElements.submit.isEnabled(); });
+        this.inputs = inputs;
+        return waitFor(function() { return inputs.submit.isEnabled(); });
       })
       .then(function() {
-        return inputElements.submit.click();
+        return this.inputs.submit.click();
       })
       .then(function() {
-        return inputElements;
+        return this.inputs;
       });
   }
 
@@ -526,25 +520,23 @@ describe('The Distributron', function() {
   }
 
   function receiveAndParseActivationEmail(mailServer) {
-    var waitForEmail = q.defer();
-    mailServer.bind(function(address, id, email) {
-      waitForEmail.resolve(email);
-    });
-
-    return waitForEmail.promise
+    return new Promise(
+      function(resolve) {
+        mailServer.bind(function(address, id, email) {
+          resolve(email);
+        });
+      })
       .then(function(email) {
         var cheerio = require('cheerio');
         email.activationLinks = cheerio('a', email.html).filter(function(i, link) {
           return /\/activate\//.test(link.attribs.href);
         });
         return email;
-      })
+      });
   }
 
   function deleteDatabase() {
-    var deleteDb = q.defer();
-    fs.unlink(dbFile, deleteDb.makeNodeResolver());
-    return deleteDb.promise
+    return fs.unlinkAsync(dbFile)
       .catch(function(err) {
         // ignore
       });

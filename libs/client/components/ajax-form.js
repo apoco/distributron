@@ -1,12 +1,15 @@
 "use strict";
 
-var q = require('q');
+var Promise = require('bluebird');
 var React = require('react');
 var Field = require('./field');
 var reqwest = require('reqwest');
+var ValidationError = require('../errors/validation');
+var strings = require('../strings');
 
 module.exports = React.createClass({
   displayName: 'AjaxForm',
+
   getInitialState: function() {
     return {
       submitted: false,
@@ -14,56 +17,63 @@ module.exports = React.createClass({
       validatingPromise: this.validate()
     };
   },
+
   validate: function() {
-    var self = this;
-    return ((self.state && self.state.validatingPromise) || q.resolve(null))
+    return ((this.state && this.state.validatingPromise) || Promise.resolve(null))
+      .bind(this)
       .then(function() {
-        self.setState({ isValidating: true });
-        return q.all(self.props.fields.map(function(field) {
-          var validationState = {};
-          return self.validateField(field)
-            .then(function() {
-              validationState[field.name + 'ValidationMessage'] = null;
-            })
-            .fail(function(err) {
-              validationState[field.name + 'ValidationMessage'] = err.message;
-            })
-            .finally(function() {
-              self.setState(validationState);
-            })
-        }));
+        this.setState({ isValidating: true });
+        return this.props.fields;
       })
+      .map(this.validateField)
+      .all()
       .then(function() {
-        self.setState({ isValid: true });
+        this.setState({ isValid: true });
       })
-      .fail(function() {
-        self.setState({ isValid: false });
+      .catch(ValidationError, function() {
+        this.setState({ isValid: false });
       })
       .finally(function() {
-        self.setState({ isValidating: false });
+        this.setState({ isValidating: false });
       });
   },
-  validateField: function(field) {
-    var self = this;
 
-    return field.rules.reduce(function(prev, rule) {
-      return prev
-        .then(function() {
-          return rule.isValid.call(self);
-        })
-        .then(function(isValid) {
-          if (!isValid) {
-            throw new Error(rule.message);
-          }
-        });
-    }, q.resolve(null));
+  validateField: function(field) {
+    return Promise
+      .bind(this)
+      .return(field.rules)
+      .map(function(rule) {
+        return this.validateRule(field.name, rule);
+      })
+      .all()
+      .then(function() {
+        var state = {};
+        state[field.name + 'ValidationMessage'] = null;
+        this.setState(state);
+      });
   },
+
+  validateRule: function(fieldName, rule) {
+    return Promise
+      .bind(this)
+      .return(rule.isValid.call(this))
+      .then(function(isValid) {
+        if (!isValid) {
+          var state = {};
+          state[fieldName + 'ValidationMessage'] = rule.message;
+          this.setState(state);
+          throw new ValidationError(rule.message);
+        }
+      });
+  },
+
   handleChange: function(field, e) {
     var change = { validatingPromise: this.validate() };
     change[field.name] = e.target.value.replace(/^\s+|\s+$/g, '');
     change[field.name + 'Changed'] = true;
     this.setState(change);
   },
+
   handleSubmit: function(e) {
     e.preventDefault();
 
@@ -72,41 +82,44 @@ module.exports = React.createClass({
       payload[field.name] = this.state[field.name];
     }.bind(this));
 
-    this.setState({ isSubmitting: true });
+    this.setState({ isSubmitting: true, hadSubmitError: false });
 
-    reqwest(
-      {
+    Promise
+      .bind(this)
+      .return(reqwest({
         url: this.props.url,
         method: 'post',
         type: 'json',
         contentType: 'application/json',
         data: JSON.stringify(payload)
-      })
+      }))
       .then(function(res) {
         this.props.onAfterSubmit(res);
-      }.bind(this))
-      .fail(function() {
       })
-      .always(function() {
+      .catch(function() {
+        this.setState({ hadSubmitError: true });
+      })
+      .finally(function() {
         this.setState({ isSubmitting: false });
-      }.bind(this));
+      });
 
     return false;
   },
+
   renderFields: function(validationMessages) {
-    var self = this;
     return this.props.fields.map(function(field) {
       return Field({
         key: field.name,
         name: field.name,
         label: field.label,
         type: field.type,
-        value: self.state[field.name],
+        value: this.state[field.name],
         validationMessage: validationMessages[field.name],
-        onChange: self.handleChange.bind(self, field)
+        onChange: this.handleChange.bind(this, field)
       });
-    });
+    }.bind(this));
   },
+
   render: function() {
     var isValid = true, validationMessages = {};
     this.props.fields.forEach(function(field) {
@@ -122,6 +135,9 @@ module.exports = React.createClass({
 
     return React.DOM.form({ onSubmit: this.handleSubmit },
       this.renderFields(validationMessages),
+      this.state.hadSubmitError
+        ? React.DOM.div({ className: 'error' }, strings.unknownErrorMessage)
+        : null,
       React.DOM.input(submitProps));
   }
 });

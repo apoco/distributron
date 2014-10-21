@@ -7,5 +7,6 @@
   "loginFormUsernameLabel": "Email address",
   "loginFormPasswordLabel": "Password",
   "loginFormRegistrationLinkText": "Create a login",
-  "loginFormPasswordResetLinkText": "Reset my password"
+  "loginFormPasswordResetLinkText": "Reset my password",
+  "unknownErrorMessage": "We were unable to process your request. You may want to try again later."
 }

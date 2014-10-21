@@ -3,5 +3,9 @@
   "accountActivationWaitMessage": "Activating your account...",
   "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
   "invalidAccountActivationCodeMessage": "Invalid access code.",
-  "internalErrorMessage": "Sorry, something went wrong. It's not you, it's us. Please try again later."
+  "internalErrorMessage": "Sorry, something went wrong. It's not you, it's us. Please try again later.",
+  "loginFormUsernameLabel": "Email address",
+  "loginFormPasswordLabel": "Password",
+  "loginFormRegistrationLinkText": "Create a login",
+  "loginFormPasswordResetLinkText": "Reset my password"
 }

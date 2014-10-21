@@ -12,5 +12,10 @@ React.renderComponent(
     Route({ name: 'login', path: '/login', handler: LoginForm }),
     Route({ name: 'register', path: '/register', handler: require('./components/registration-form') }),
     Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
+    Route({
+      name: 'reset-password',
+      path: '/reset-password',
+      handler: require('./components/reset-password-form')
+    }),
     DefaultRoute({ handler: LoginForm })),
   document.querySelector('body'));

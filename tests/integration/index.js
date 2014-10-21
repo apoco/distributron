@@ -62,14 +62,19 @@ describe('The Distributron', function() {
   });
 
   describe('login form', function() {
-    it('has a username and password input', function() {
-      return goToUrl('/')
+    beforeEach(function() {
+      return goToUrl('/login')
         .then(function() {
-          return q.all([
-            waitForElement('input[name="username"]', 5000),
-            waitForElement('input[name="password"]', 5000)
-          ]);
-        })
+          return waitForElement('form');
+        });
+    });
+
+    it('has a username and password input', function() {
+      return q.all(
+        [
+          waitForElement('input[name="username"]', 5000),
+          waitForElement('input[name="password"]', 5000)
+        ])
         .spread(function(username, password) {
           expect(username).to.exist;
           expect(password).to.exist;
@@ -106,14 +111,16 @@ describe('The Distributron', function() {
       });
 
       function getRegistrationLink() {
-        return goToUrl('/')
-          .then(function() {
-            return waitForElement('a[href="/register"]');
-          });
+        return waitForElement('a[href="/register"]');
       }
     });
 
-    it('shows a password reset link');
+    it('shows a password reset link', function() {
+      return select('a[href="/reset-password"]')
+        .then(function(link) {
+          expect(link).to.exist;
+        });
+    });
   });
 
   describe('registration form', function() {
@@ -390,13 +397,13 @@ describe('The Distributron', function() {
   }
 
   function waitForElement(selector, timeout) {
-    return waitFor(
+    return q(waitFor(
       function() {
         return driver.findElements(byCss(selector))
           .then(function(elems) {
             return !!elems.length;
           });
-      }, timeout)
+      }, timeout))
       .then(function() {
         return select(selector);
       });

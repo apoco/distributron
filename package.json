@@ -26,13 +26,15 @@
     "browserify": "~6.1.0",
     "smtp-tester": "~0.5.0",
     "sqlite3": "~3.0.2",
-    "cheerio": "~0.17.0"
+    "cheerio": "~0.17.0",
+    "watchify": "~2.0.0"
   },
   "scripts": {
     "build": "npm run browserify",
     "test": "npm run build && npm run integration-test",
     "start": "npm run build && npm run start-server",
     "browserify": "./node_modules/browserify/bin/cmd.js libs/client/app.js -o libs/client/static/js/app.js",
+    "watchify": "./node_modules/watchify/bin/cmd.js libs/client/app.js -o libs/client/static/js/app.js",
     "integration-test": "./node_modules/mocha/bin/_mocha tests/integration",
     "start-server": "node ./index.js"
   }

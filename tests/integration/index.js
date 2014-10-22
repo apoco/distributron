@@ -11,7 +11,6 @@ var request = require('request');
 var webdriver = require('selenium-webdriver');
 var smtpTester = require('smtp-tester');
 var config = require('./config.json');
-
 var byCss = webdriver.By.css;
 
 describe('The Distributron', function() {
@@ -20,6 +19,7 @@ describe('The Distributron', function() {
   var driver;
   var baseUrl = 'http://127.0.0.1:2835/';
   var dbFile = path.resolve(__dirname, 'test.db');
+  var mailServer;
 
   this.timeout(30000);
 
@@ -47,6 +47,10 @@ describe('The Distributron', function() {
           appProcess.stderr.pipe(process.stderr);
         });
       });
+  });
+
+  beforeEach(function() {
+    mailServer = startSMTPServer();
   });
 
   describe('startup script', function() {
@@ -124,10 +128,7 @@ describe('The Distributron', function() {
 
   describe('registration form', function() {
 
-    var mailServer;
-
     beforeEach(function() {
-      mailServer = startSMTPServer();
       return goToRegistrationForm();
     });
 
@@ -172,7 +173,7 @@ describe('The Distributron', function() {
 
       it('ensures that the username is not already in use', function() {
         var username;
-        return registerNewUser(mailServer)
+        return registerNewUser()
           .then(function(result) {
             username = result.inputValues.username;
             return goToRegistrationForm();
@@ -219,8 +220,13 @@ describe('The Distributron', function() {
     });
 
     it('prevents multiple clicks on the submit button', function() {
-      return submitRegistrationForm()
-        .then(function(inputs) {
+      var inputs;
+      return populateRegistrationForm()
+        .then(function(formInputs) {
+          inputs = formInputs;
+          return inputs.submit.click();
+        })
+        .then(function() {
           return inputs.submit.isEnabled();
         })
         .then(function(isEnabled) {
@@ -229,23 +235,20 @@ describe('The Distributron', function() {
     });
 
     it('sends an activation email after submitting', function() {
-      var username;
-      submitRegistrationForm()
-        .then(function(inputs) {
-          username = inputs.username.getAttribute('value');
-          return receiveAndParseActivationEmail(mailServer);
+      return submitRegistrationForm()
+        .then(function(formValues) {
+          return receiveAndParseActivationEmail(formValues.username);
         })
         .then(function(email) {
           expect(email.sender).to.equal(config.email.fromAddress);
-          expect(email.receivers).to.have.property(username);
-          expect(activationLinks.length).to.be.ok;
+          expect(email.activationLinks.length).to.be.ok;
         });
     });
 
     it('shows a success message on a successful submit', function() {
       return submitRegistrationForm()
-        .then(function() {
-          return receiveAndParseActivationEmail(mailServer);
+        .then(function(inputValues) {
+          return receiveAndParseActivationEmail(inputValues.username);
         })
         .then(function() {
           return selectMany('form');
@@ -259,7 +262,7 @@ describe('The Distributron', function() {
 
     it('regenerates activation codes to replace unactivated codes', function() {
       var firstUserResults;
-      return getNewUserActivation(mailServer)
+      return getNewUserActivation()
         .then(function(results) {
           firstUserResults = results;
           return goToRegistrationForm();
@@ -277,19 +280,9 @@ describe('The Distributron', function() {
           expect(elem).to.exist;
         });
     });
-
-    afterEach(function() {
-      mailServer.stop();
-    });
   });
 
   describe('activation page', function() {
-    var mailServer;
-
-    beforeEach(function() {
-      mailServer = startSMTPServer();
-    });
-
     it('shows a login form when a valid activation code is given', function() {
       return activateNewUser()
         .then(function() {
@@ -328,18 +321,14 @@ describe('The Distributron', function() {
         });
     });
 
-    afterEach(function() {
-      mailServer.stop();
-    });
-
     function activateNewUser() {
       var activationUrl;
       return goToRegistrationForm()
         .then(function() {
           return submitRegistrationForm();
         })
-        .then(function() {
-          return receiveAndParseActivationEmail(mailServer);
+        .then(function(inputValues) {
+          return receiveAndParseActivationEmail(inputValues.username);
         })
         .then(function(email) {
           activationUrl = email.activationLinks[0].attribs.href;
@@ -357,6 +346,10 @@ describe('The Distributron', function() {
 
   describe('dashboard', function() {
     it('exists');
+  });
+
+  afterEach(function() {
+    mailServer.stop();
   });
 
   after(function() {
@@ -425,9 +418,9 @@ describe('The Distributron', function() {
   }
 
   function populateRegistrationForm(fieldValues) {
-    return Promise
-      .bind({ fieldValues: fieldValues || getRandomRegistrationData() })
-      .return(select([
+    fieldValues = fieldValues || getRandomRegistrationData();
+    var inputs;
+    return select([
         'form',
         '[name="username"]',
         '[name="password"]',
@@ -435,9 +428,9 @@ describe('The Distributron', function() {
         '[name="question"]',
         '[name="answer"]',
         '[type="submit"]'
-      ]))
+      ])
       .spread(function(form, username, password, confirm, question, answer, submit) {
-        this.inputs = {
+        inputs = {
           form: form,
           username: username,
           password: password,
@@ -446,40 +439,40 @@ describe('The Distributron', function() {
           answer: answer,
           submit: submit
         };
-        return Object.keys(this.fieldValues);
+        return Object.keys(fieldValues);
       })
       .map(function(inputName) {
-        return fillInput(this.inputs[inputName], this.fieldValues[inputName]);
+        return fillInput(inputs[inputName], fieldValues[inputName]);
       })
       .all()
       .then(function() {
-        return this.inputs;
+        return inputs;
       });
   }
 
   function submitRegistrationForm(fieldValues) {
-    return Promise
-      .bind({})
-      .return(populateRegistrationForm(fieldValues))
-      .then(function(inputs) {
-        this.inputs = inputs;
+    fieldValues = fieldValues || getRandomRegistrationData();
+    var inputs;
+    return populateRegistrationForm(fieldValues)
+      .then(function(formInputs) {
+        inputs = formInputs;
         return waitFor(function() { return inputs.submit.isEnabled(); });
       })
       .then(function() {
-        return this.inputs.submit.click();
+        return inputs.submit.click();
       })
       .then(function() {
-        return this.inputs;
+        return fieldValues;
       });
   }
 
-  function getNewUserActivation(mailServer) {
+  function getNewUserActivation() {
     var result = {
       inputValues: getRandomRegistrationData()
     };
     return submitRegistrationForm(result.inputValues)
       .then(function() {
-        return receiveAndParseActivationEmail(mailServer);
+        return receiveAndParseActivationEmail(result.inputValues.username);
       })
       .then(function(email) {
         result.activationUrl = email.activationLinks[0].attribs.href;
@@ -487,9 +480,9 @@ describe('The Distributron', function() {
       })
   }
 
-  function registerNewUser(mailServer) {
+  function registerNewUser() {
     var result;
-    return getNewUserActivation(mailServer)
+    return getNewUserActivation()
       .then(function(activationData) {
         result = activationData;
         return goToUrl(result.activationUrl);
@@ -519,13 +512,19 @@ describe('The Distributron', function() {
     return smtpTester.init(smtpPort);
   }
 
-  function receiveAndParseActivationEmail(mailServer) {
-    return new Promise(
-      function(resolve) {
-        mailServer.bind(function(address, id, email) {
+  function receiveEmail(username) {
+    return new Promise(function(resolve) {
+      mailServer.bind(function(address, id, email) {
+        if (username in email.receivers) {
           resolve(email);
-        });
-      })
+        }
+      });
+    });
+  }
+
+
+  function receiveAndParseActivationEmail(username) {
+    return receiveEmail(username)
       .then(function(email) {
         var cheerio = require('cheerio');
         email.activationLinks = cheerio('a', email.html).filter(function(i, link) {

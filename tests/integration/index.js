@@ -137,10 +137,7 @@ describe('The Distributron', function() {
     });
 
     it('does not validate before the form changes', function() {
-      return driver.findElements(byCss('form .error'))
-        .then(function(elements) {
-          expect(elements.length).to.equal(0);
-        });
+      return ensureElementDoesNotExist('form .error');
     });
 
     it('disables the submit button when the form is incomplete', function() {
@@ -251,10 +248,7 @@ describe('The Distributron', function() {
           return receiveAndParseActivationEmail(inputValues.username);
         })
         .then(function() {
-          return selectMany('form');
-        })
-        .then(function(forms) {
-          expect(forms.length).to.equal(0);
+          return ensureElementDoesNotExist('form');
         });
     });
 
@@ -378,10 +372,6 @@ describe('The Distributron', function() {
     }
   }
 
-  function selectMany(selector) {
-    return driver.findElements(byCss(selector));
-  }
-
   function waitFor(fn, timeout) {
     return Promise.resolve(driver.wait(fn, timeout || 2000));
   }
@@ -397,7 +387,14 @@ describe('The Distributron', function() {
       .then(function() {
         return select(selector);
       });
-}
+  }
+
+  function ensureElementDoesNotExist(selector) {
+    driver.findElements(byCss(selector))
+      .then(function(elements) {
+        expect(elements.length).to.equal(0);
+      });
+  }
 
   function fillInput(input, text) {
     return input.click()

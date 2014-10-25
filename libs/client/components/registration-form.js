@@ -4,7 +4,7 @@ var Promise = require('bluebird');
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
-var reqwest = require('reqwest');
+var users = require('../repositories/users');
 var validator = require('../../common/validator');
 var strings = require('../strings');
 var IsRequiredRule = require('../forms/rules/required');
@@ -30,15 +30,14 @@ var fields = [
             return usernameExistsCache[this.state.username]
           }
 
-          return Promise
-            .bind(this)
-            .return(reqwest({ url: '/api/users/' + encodeURIComponent(this.state.username) }))
+          var self = this;
+          return users.getByUsername(this.state.username)
             .then(function() {
               // We got back a success message, so the user exists and the username is in use.
-              return usernameExistsCache[this.state.username] = false;
+              return usernameExistsCache[self.state.username] = false;
             })
             .catch(function() {
-              return usernameExistsCache[this.state.username] = true;
+              return usernameExistsCache[self.state.username] = true;
             });
         }
       }

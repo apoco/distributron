@@ -346,6 +346,8 @@ describe('The Distributron', function() {
         });
     });
 
+    it('has links to the login and registration forms');
+
     it('validates that the username is populated', function() {
       return select('input[type="submit"]')
         .then(function(submit) {
@@ -356,7 +358,22 @@ describe('The Distributron', function() {
         });
     });
 
-    it('validates that the username exists');
+    it('validates that the username exists', function() {
+      return select('input[name="username"]')
+        .then(function(input) {
+          return fillInput(input, 'some.unknown@email.com');
+        })
+        .then(function() {
+          return select(['input[type="submit"]', 'form .error']);
+        })
+        .spread(function(submit, error) {
+          expect(error).to.exist;
+          return submit.isEnabled();
+        })
+        .then(function(canSubmit) {
+          expect(canSubmit).to.be.false;
+        });
+    });
 
     it('prompts for the security answer after submitting the username');
   });
@@ -391,7 +408,7 @@ describe('The Distributron', function() {
     if (selectors instanceof Array) {
       return Promise.map(selectors, select).all();
     } else {
-      return driver.findElement(byCss(selectors));
+      return Promise.resolve(driver.findElement(byCss(selectors)));
     }
   }
 
@@ -476,7 +493,7 @@ describe('The Distributron', function() {
     return populateRegistrationForm(fieldValues)
       .then(function(formInputs) {
         inputs = formInputs;
-        return waitFor(function() { return inputs.submit.isEnabled(); });
+        return waitFor(function() { return inputs.submit.isEnabled(); }, 5000);
       })
       .then(function() {
         return inputs.submit.click();

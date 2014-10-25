@@ -290,7 +290,7 @@ var Promise = require('bluebird');
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
-var reqwest = require('reqwest');
+var users = require('../repositories/users');
 var validator = require('../../common/validator');
 var strings = require('../strings');
 var IsRequiredRule = require('../forms/rules/required');
@@ -316,15 +316,14 @@ var fields = [
             return usernameExistsCache[this.state.username]
           }
 
-          return Promise
-            .bind(this)
-            .return(reqwest({ url: '/api/users/' + encodeURIComponent(this.state.username) }))
+          var self = this;
+          return users.getByUsername(this.state.username)
             .then(function() {
               // We got back a success message, so the user exists and the username is in use.
-              return usernameExistsCache[this.state.username] = false;
+              return usernameExistsCache[self.state.username] = false;
             })
             .catch(function() {
-              return usernameExistsCache[this.state.username] = true;
+              return usernameExistsCache[self.state.username] = true;
             });
         }
       }
@@ -388,7 +387,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js","../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js":[function(require,module,exports){
+},{"../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js","../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../repositories/users":"/home/jacob/Code/distributron/libs/client/repositories/users.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -396,6 +395,7 @@ var AjaxForm = require('./ajax-form');
 var strings = require('../strings');
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');
+var users = require('../repositories/users');
 
 module.exports = React.createClass({
   render: function() {
@@ -409,7 +409,19 @@ module.exports = React.createClass({
             label: 'Email address',
             rules: [
               new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
-              new IsEmailRule('username', strings.emailAddressValidationMessage)
+              new IsEmailRule('username', strings.emailAddressValidationMessage),
+              {
+                message: strings.unknownUsernameValidationMessage,
+                isValid: function() {
+                  return users.getByUsername(this.state.username)
+                    .then(function(user) {
+                      return true;
+                    })
+                    .catch(function() {
+                      return false;
+                    });
+                }
+              }
             ]
           }
         ],
@@ -419,7 +431,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/errors/validation.js":[function(require,module,exports){
+},{"../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../repositories/users":"/home/jacob/Code/distributron/libs/client/repositories/users.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/errors/validation.js":[function(require,module,exports){
 'use strict';
 
 module.exports = ValidationError;
@@ -462,8 +474,22 @@ function RequiredRule(field, message) {
   };
 }
 
-},{}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+},{}],"/home/jacob/Code/distributron/libs/client/repositories/users.js":[function(require,module,exports){
+'use strict';
+
+module.exports = {
+  getByUsername: getByUsername
+};
+
+var Promise = require('bluebird');
+var reqwest = require('reqwest');
+
+function getByUsername(username) {
+  return Promise.resolve(reqwest({ url: '/api/users/' + encodeURIComponent(username) }));
+}
+
+},{"bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "registrationSuccessMessage": "Your registration has been submitted. You should receive your activation email shortly.",
   "accountActivationWaitMessage": "Activating your account...",
   "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
@@ -480,7 +506,8 @@ module.exports=module.exports=module.exports=module.exports=module.exports=modul
   "securityQuestionRequiredValidationMessage": "You must enter a password reset question",
   "securityAnswerRequiredValidationMessage": "You must enter a password reset answer",
   "passwordResetFormInstructionsStep1": "To reset your password, first enter your email address.",
-  "passwordResetStep1SubmitLabel": "Next"
+  "passwordResetStep1SubmitLabel": "Next",
+  "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered"
 }
 
 },{}],"/home/jacob/Code/distributron/libs/common/validator.js":[function(require,module,exports){

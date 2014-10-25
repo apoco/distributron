@@ -6,7 +6,9 @@ var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var reqwest = require('reqwest');
 var validator = require('../../common/validator');
-
+var strings = require('../strings');
+var IsRequiredRule = require('../forms/rules/required');
+var IsEmailRule = require('../forms/rules/email');
 var usernameExistsCache = {};
 
 var fields = [
@@ -15,14 +17,8 @@ var fields = [
     type: 'email',
     label: 'Email address',
     rules: [
-      {
-        isValid: function() { return !!this.state.username; },
-        message: 'You must enter an email address'
-      },
-      {
-        isValid: function() { return validator.isEmailAddress(this.state.username); },
-        message: 'Invalid email address'
-      },
+      new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
+      new IsEmailRule('username', strings.emailAddressValidationMessage),
       {
         message: 'There is already an account using this email address',
         isValid: function() {
@@ -53,10 +49,7 @@ var fields = [
     type: 'password',
     label: 'Password',
     rules: [
-      {
-        message: 'You must enter a password',
-        isValid: function() { return !!this.state.password; }
-      }
+      new IsRequiredRule('password', strings.passwordRequiredValidationMessage)
     ]
   },
   {
@@ -75,10 +68,7 @@ var fields = [
     type: 'text',
     label: 'Password reset question',
     rules: [
-      {
-        message: 'You must enter a password reset question',
-        isValid: function() { return !!this.state.question; }
-      }
+      new IsRequiredRule('question', strings.securityQuestionRequiredValidationMessage)
     ]
   },
   {
@@ -86,10 +76,7 @@ var fields = [
     type: 'password',
     label: 'Password reset answer',
     rules: [
-      {
-        message: 'You must enter a password reset answer',
-        isValid: function() { return !!this.state.answer; }
-      }
+      new IsRequiredRule('answer', strings.securityAnswerRequiredValidationMessage)
     ]
   }
 ];

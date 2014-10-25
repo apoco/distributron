@@ -8,5 +8,12 @@
   "loginFormPasswordLabel": "Password",
   "loginFormRegistrationLinkText": "Create a login",
   "loginFormPasswordResetLinkText": "Reset my password",
-  "unknownErrorMessage": "We were unable to process your request. You may want to try again later."
+  "unknownErrorMessage": "We were unable to process your request. You may want to try again later.",
+  "emailAddressRequiredValidationMessage": "You must enter an email address",
+  "emailAddressValidationMessage": "Invalid email address",
+  "passwordRequiredValidationMessage": "You must enter a password",
+  "securityQuestionRequiredValidationMessage": "You must enter a password reset question",
+  "securityAnswerRequiredValidationMessage": "You must enter a password reset answer",
+  "passwordResetFormInstructionsStep1": "To reset your password, first enter your email address.",
+  "passwordResetStep1SubmitLabel": "Next"
 }

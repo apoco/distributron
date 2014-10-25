@@ -101,22 +101,24 @@ module.exports = React.createClass({
   },
 
   validate: function() {
+    var self = this;
     return ((this.state && this.state.validatingPromise) || Promise.resolve(null))
-      .bind(this)
       .then(function() {
-        this.setState({ isValidating: true });
-        return this.props.fields;
+        self.setState({ isValidating: true });
+        return self.props.fields;
       })
-      .map(this.validateField)
+      .map(function(field) {
+        return self.validateField(field);
+      })
       .all()
       .then(function() {
-        this.setState({ isValid: true });
+        self.setState({ isValid: true });
       })
       .catch(ValidationError, function() {
-        this.setState({ isValid: false });
+        self.setState({ isValid: false });
       })
       .finally(function() {
-        this.setState({ isValidating: false });
+        self.setState({ isValidating: false });
       });
   },
 
@@ -136,14 +138,13 @@ module.exports = React.createClass({
   },
 
   validateRule: function(fieldName, rule) {
-    return Promise
-      .bind(this)
-      .return(rule.isValid.call(this))
+    var self = this;
+    return Promise.resolve(rule.isValid.call(self))
       .then(function(isValid) {
         if (!isValid) {
           var state = {};
           state[fieldName + 'ValidationMessage'] = rule.message;
-          this.setState(state);
+          self.setState(state);
           throw new ValidationError(rule.message);
         }
       });
@@ -210,7 +211,7 @@ module.exports = React.createClass({
       validationMessages[field.name] = this.state[field.name + 'Changed'] ? msg : null;
     }.bind(this));
 
-    var submitProps = { type: 'submit', value: 'Submit' };
+    var submitProps = { type: 'submit', value: this.props.submitLabel || 'Submit' };
     if (!isValid || this.state.isValidating || this.state.isSubmitting) {
       submitProps.disabled = 'disabled';
     }
@@ -291,7 +292,9 @@ var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var reqwest = require('reqwest');
 var validator = require('../../common/validator');
-
+var strings = require('../strings');
+var IsRequiredRule = require('../forms/rules/required');
+var IsEmailRule = require('../forms/rules/email');
 var usernameExistsCache = {};
 
 var fields = [
@@ -300,14 +303,8 @@ var fields = [
     type: 'email',
     label: 'Email address',
     rules: [
-      {
-        isValid: function() { return !!this.state.username; },
-        message: 'You must enter an email address'
-      },
-      {
-        isValid: function() { return validator.isEmailAddress(this.state.username); },
-        message: 'Invalid email address'
-      },
+      new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
+      new IsEmailRule('username', strings.emailAddressValidationMessage),
       {
         message: 'There is already an account using this email address',
         isValid: function() {
@@ -338,10 +335,7 @@ var fields = [
     type: 'password',
     label: 'Password',
     rules: [
-      {
-        message: 'You must enter a password',
-        isValid: function() { return !!this.state.password; }
-      }
+      new IsRequiredRule('password', strings.passwordRequiredValidationMessage)
     ]
   },
   {
@@ -360,10 +354,7 @@ var fields = [
     type: 'text',
     label: 'Password reset question',
     rules: [
-      {
-        message: 'You must enter a password reset question',
-        isValid: function() { return !!this.state.question; }
-      }
+      new IsRequiredRule('question', strings.securityQuestionRequiredValidationMessage)
     ]
   },
   {
@@ -371,10 +362,7 @@ var fields = [
     type: 'password',
     label: 'Password reset answer',
     rules: [
-      {
-        message: 'You must enter a password reset answer',
-        isValid: function() { return !!this.state.answer; }
-      }
+      new IsRequiredRule('answer', strings.securityAnswerRequiredValidationMessage)
     ]
   }
 ];
@@ -400,18 +388,38 @@ module.exports = React.createClass({
   }
 });
 
-},{"../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js":[function(require,module,exports){
+},{"../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js","../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
+var AjaxForm = require('./ajax-form');
+var strings = require('../strings');
+var IsRequiredRule = require('../forms/rules/required');
+var IsEmailRule = require('../forms/rules/email');
 
 module.exports = React.createClass({
   render: function() {
-    return 'TODO: something';
+    return React.DOM.div(null,
+      React.DOM.p(null, strings.passwordResetFormInstructionsStep1),
+      AjaxForm({
+        fields: [
+          {
+            name: 'username',
+            type: 'email',
+            label: 'Email address',
+            rules: [
+              new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
+              new IsEmailRule('username', strings.emailAddressValidationMessage)
+            ]
+          }
+        ],
+        submitLabel: strings.passwordResetStep1SubmitLabel
+      })
+    );
   }
 });
 
-},{"react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/errors/validation.js":[function(require,module,exports){
+},{"../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/errors/validation.js":[function(require,module,exports){
 'use strict';
 
 module.exports = ValidationError;
@@ -424,8 +432,38 @@ function ValidationError(message) {
 ValidationError.prototype = Object.create(Error.prototype);
 ValidationError.prototype.constructor = ValidationError;
 
+},{}],"/home/jacob/Code/distributron/libs/client/forms/rules/email.js":[function(require,module,exports){
+'use strict';
+
+module.exports = EmailRule;
+
+var isEmailAddress = require('../../../common/validator').isEmailAddress;
+
+function EmailRule(field, message) {
+  return {
+    message: message,
+    isValid: function() {
+      return isEmailAddress(this.state[field]);
+    }
+  };
+}
+
+},{"../../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js"}],"/home/jacob/Code/distributron/libs/client/forms/rules/required.js":[function(require,module,exports){
+'use strict';
+
+module.exports = RequiredRule;
+
+function RequiredRule(field, message) {
+  return {
+    message: message,
+    isValid: function() {
+      return !!this.state[field];
+    }
+  };
+}
+
 },{}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "registrationSuccessMessage": "Your registration has been submitted. You should receive your activation email shortly.",
   "accountActivationWaitMessage": "Activating your account...",
   "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
@@ -435,7 +473,14 @@ module.exports=module.exports=module.exports=module.exports=module.exports=modul
   "loginFormPasswordLabel": "Password",
   "loginFormRegistrationLinkText": "Create a login",
   "loginFormPasswordResetLinkText": "Reset my password",
-  "unknownErrorMessage": "We were unable to process your request. You may want to try again later."
+  "unknownErrorMessage": "We were unable to process your request. You may want to try again later.",
+  "emailAddressRequiredValidationMessage": "You must enter an email address",
+  "emailAddressValidationMessage": "Invalid email address",
+  "passwordRequiredValidationMessage": "You must enter a password",
+  "securityQuestionRequiredValidationMessage": "You must enter a password reset question",
+  "securityAnswerRequiredValidationMessage": "You must enter a password reset answer",
+  "passwordResetFormInstructionsStep1": "To reset your password, first enter your email address.",
+  "passwordResetStep1SubmitLabel": "Next"
 }
 
 },{}],"/home/jacob/Code/distributron/libs/common/validator.js":[function(require,module,exports){

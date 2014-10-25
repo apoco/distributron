@@ -335,7 +335,19 @@ describe('The Distributron', function() {
   });
 
   describe('password reset form', function() {
-    it('exists');
+    it('exists', function() {
+      return goToUrl('/reset-password')
+        .then(function() {
+          return select('form');
+        })
+        .then(function(form) {
+          expect(form).to.exist;
+        });
+    });
+
+    it('has the user submit their username first');
+
+    it('has the user submit their security answer after');
   });
 
   describe('dashboard', function() {

@@ -19,22 +19,24 @@ module.exports = React.createClass({
   },
 
   validate: function() {
+    var self = this;
     return ((this.state && this.state.validatingPromise) || Promise.resolve(null))
-      .bind(this)
       .then(function() {
-        this.setState({ isValidating: true });
-        return this.props.fields;
+        self.setState({ isValidating: true });
+        return self.props.fields;
       })
-      .map(this.validateField)
+      .map(function(field) {
+        return self.validateField(field);
+      })
       .all()
       .then(function() {
-        this.setState({ isValid: true });
+        self.setState({ isValid: true });
       })
       .catch(ValidationError, function() {
-        this.setState({ isValid: false });
+        self.setState({ isValid: false });
       })
       .finally(function() {
-        this.setState({ isValidating: false });
+        self.setState({ isValidating: false });
       });
   },
 
@@ -54,14 +56,13 @@ module.exports = React.createClass({
   },
 
   validateRule: function(fieldName, rule) {
-    return Promise
-      .bind(this)
-      .return(rule.isValid.call(this))
+    var self = this;
+    return Promise.resolve(rule.isValid.call(self))
       .then(function(isValid) {
         if (!isValid) {
           var state = {};
           state[fieldName + 'ValidationMessage'] = rule.message;
-          this.setState(state);
+          self.setState(state);
           throw new ValidationError(rule.message);
         }
       });
@@ -128,7 +129,7 @@ module.exports = React.createClass({
       validationMessages[field.name] = this.state[field.name + 'Changed'] ? msg : null;
     }.bind(this));
 
-    var submitProps = { type: 'submit', value: 'Submit' };
+    var submitProps = { type: 'submit', value: this.props.submitLabel || 'Submit' };
     if (!isValid || this.state.isValidating || this.state.isSubmitting) {
       submitProps.disabled = 'disabled';
     }

@@ -422,7 +422,7 @@ var users = require('../repositories/users');
 
 module.exports = React.createClass({
   getInitialState: function() {
-    return { hasSubmittedUsername: false };
+    return { hasSubmittedUsername: false, hasResetPassword: false };
   },
   handleFieldChange: function(e) {
     if (e.field === 'username') {
@@ -445,14 +445,11 @@ module.exports = React.createClass({
   getSecurityQuestionUrl: function() {
     return '/api/users/' + encodeURIComponent(this.state.username) + '/question';
   },
-  getPasswordResetUrl: function() {
-    return '/api/users/' + encodeURIComponent(this.state.username) + '/answer';
-  },
   handleSecurityQuestion: function(question) {
     this.setState({ hasSubmittedUsername: true, securityQuestion: question });
   },
   handlePasswordReset: function() {
-
+    this.setState({ hasResetPassword: true });
   },
   renderStep1: function() {
     return [
@@ -495,15 +492,21 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: strings.passwordResetStep2SubmitLabel,
-        url: this.getPasswordResetUrl,
+        url: this.getSecurityQuestionUrl,
         onAfterSubmit: this.handlePasswordReset
       })
     ];
   },
   render: function() {
-    var formContent = this.state.hasSubmittedUsername
-      ? this.renderStep2()
-      : this.renderStep1();
+    var formContent;
+    if (!this.state.hasSubmittedUsername) {
+      formContent = this.renderStep1();
+    } else if (!this.state.hasResetPassword) {
+      formContent = this.renderStep2();
+    } else {
+      formContent = React.DOM.p(null, strings.resetPasswordSuccessMessage);
+    }
+
     return React.DOM.div(null, formContent);
   }
 });
@@ -566,7 +569,7 @@ function checkIfExists(username) {
 }
 
 },{"bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports={
   "registrationSuccessMessage": "Your registration has been submitted. You should receive your activation email shortly.",
   "accountActivationWaitMessage": "Activating your account...",
   "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
@@ -586,7 +589,8 @@ module.exports=module.exports=module.exports=module.exports=module.exports=modul
   "passwordResetFormInstructionsStep2": "Now answer your password reset question.",
   "passwordResetStep1SubmitLabel": "Next",
   "passwordResetStep2SubmitLabel": "Submit",
-  "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered"
+  "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered",
+  "resetPasswordSuccessMessage": "You have successfully reset your password. You should receive an email with your temporary password shortly."
 }
 
 },{}],"/home/jacob/Code/distributron/libs/common/validator.js":[function(require,module,exports){

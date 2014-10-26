@@ -18,5 +18,6 @@
   "passwordResetFormInstructionsStep2": "Now answer your password reset question.",
   "passwordResetStep1SubmitLabel": "Next",
   "passwordResetStep2SubmitLabel": "Submit",
-  "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered"
+  "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered",
+  "resetPasswordSuccessMessage": "You have successfully reset your password. You should receive an email with your temporary password shortly."
 }

@@ -10,6 +10,7 @@ var url = require('url');
 var request = require('request');
 var webdriver = require('selenium-webdriver');
 var smtpTester = require('smtp-tester');
+var cheerio = require('cheerio');
 var config = require('./config.json');
 var byCss = webdriver.By.css;
 
@@ -409,9 +410,42 @@ describe('The Distributron', function() {
         });
     });
 
-    it('shows a success message and sends a password reset email if the security answer is correct');
+    it('sends a password reset email if the security answer is correct', function() {
+      var user;
+      return registerNewUser()
+        .then(function(result) {
+          user = result.inputValues;
+
+          mailServer.stop();
+          mailServer = startSMTPServer();
+
+          return submitPasswordResetWithUserName(user.username);
+        })
+        .then(function() {
+          return fillInput('input[name="answer"]', user.answer);
+        })
+        .then(function() {
+          return click('input[type="submit"]');
+        })
+        .then(function() {
+          return waitUntilElementIsGone('form');
+        })
+        .then(function() {
+          return receiveEmail(user.username);
+        })
+        .then(function(email) {
+          var resetLinks = cheerio('a', email.html).filter(function(i, link) {
+            return /^\/reset-password/.test(link.attribs.href);
+          });
+          expect(resetLinks.length).to.be.greaterThan(0);
+        });
+    });
 
     it('accepts security answers in a case-insensitive manner');
+
+    it('logs in the user and prompts for a password change when following the email reset link');
+
+    it('shows a login failure if the email reset link contains an old password');
 
     function goToPasswordResetForm() {
       return goToUrl('/reset-password');
@@ -466,6 +500,10 @@ describe('The Distributron', function() {
     }
   }
 
+  function selectMany(selector) {
+    return driver.findElements(byCss(selector));
+  }
+
   function waitFor(fn, timeout) {
     return Promise.resolve(driver.wait(fn, timeout || 2000));
   }
@@ -481,6 +519,16 @@ describe('The Distributron', function() {
       .then(function() {
         return select(selector);
       });
+  }
+
+  function waitUntilElementIsGone(selector, timeout) {
+    return waitFor(
+      function() {
+        return driver.findElements(byCss(selector))
+          .then(function(elems) {
+            return !elems || !elems.length;
+          });
+      }, timeout);
   }
 
   function ensureElementDoesNotExist(selector) {
@@ -638,7 +686,6 @@ describe('The Distributron', function() {
   function receiveAndParseActivationEmail(username) {
     return receiveEmail(username)
       .then(function(email) {
-        var cheerio = require('cheerio');
         email.activationLinks = cheerio('a', email.html).filter(function(i, link) {
           return /\/activate\//.test(link.attribs.href);
         });

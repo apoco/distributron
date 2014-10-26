@@ -8,10 +8,11 @@ module.exports = {
 
 var Promise = require('bluebird');
 var crypto = Promise.promisifyAll(require('crypto'));
-var mailer = require('nodemailer');
 var config = require('../config').settings;
 var validator = require('../../common/validator');
 var status = require('../enums/user-status');
+var cryptoUtils = require('../utils/crypto');
+var emailUtils = require('../utils/email');
 var usersRepo = Promise.promisifyAll(require('../data').repositories.users);
 var UserAlreadyActivatedError = require('../errors/user-already-activated');
 
@@ -58,10 +59,10 @@ function generateUser(req) {
   var passwordSalt = getRandomBytes(),
     answerSalt = getRandomBytes(),
     passwordHash = Promise.join(passwordSalt, function (salt) {
-      return getSaltedHash(salt, req.body.password);
+      return cryptoUtils.getSaltedHash(salt, req.body.password);
     }),
     answerHash = Promise.join(answerSalt, function (salt) {
-      return getSaltedHash(salt, req.body.answer);
+      return cryptoUtils.getSaltedHash(salt, req.body.answer);
     });
   return Promise.props({
     id: require('node-uuid').v4(),
@@ -79,40 +80,13 @@ function generateUser(req) {
 
 function sendEmail(user) {
   var activationUrl = config.baseUrl + 'activate/' + encodeURIComponent(user.activationCode);
-  var smtpTransport = require('nodemailer-smtp-transport');
-  var transporter = Promise.promisifyAll(mailer.createTransport(smtpTransport(config.email.transport)));
-  var html =
-    '<html>' +
-    ' <body>' +
-    '  <p>To complete your account activation click on the following link:</p>' +
-    '  <a href="' + activationUrl + '">' + activationUrl + '</a>' +
-    ' </body>' +
-    '</html>';
-  var mailOptions = {
-    from: config.email.fromAddress,
-    to: user.username,
-    subject: 'Activate your account',
-    html: html
-  };
-  return transporter.sendMailAsync(mailOptions);
+  return emailUtils.send(
+    user.username,
+    'Activate your account',
+    'activation',
+    { activationUrl: activationUrl });
 }
 
 function getRandomBytes() {
   return crypto.randomBytesAsync(32);
-}
-
-function getSaltedHash(salt, payload) {
-  return new Promise(function(resolve, reject) {
-    var chunks = [];
-    var hash = crypto.createHash('sha256')
-      .on('error', reject)
-      .on('data', function(chunk) {
-        chunks.push(chunk);
-      })
-      .on('end', function() {
-        resolve(Buffer.concat(chunks));
-      });
-    hash.write(salt);
-    hash.end(payload);
-  });
 }

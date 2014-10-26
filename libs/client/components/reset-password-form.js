@@ -9,7 +9,7 @@ var users = require('../repositories/users');
 
 module.exports = React.createClass({
   getInitialState: function() {
-    return { hasSubmittedUsername: false };
+    return { hasSubmittedUsername: false, hasResetPassword: false };
   },
   handleFieldChange: function(e) {
     if (e.field === 'username') {
@@ -32,14 +32,11 @@ module.exports = React.createClass({
   getSecurityQuestionUrl: function() {
     return '/api/users/' + encodeURIComponent(this.state.username) + '/question';
   },
-  getPasswordResetUrl: function() {
-    return '/api/users/' + encodeURIComponent(this.state.username) + '/answer';
-  },
   handleSecurityQuestion: function(question) {
     this.setState({ hasSubmittedUsername: true, securityQuestion: question });
   },
   handlePasswordReset: function() {
-
+    this.setState({ hasResetPassword: true });
   },
   renderStep1: function() {
     return [
@@ -82,15 +79,21 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: strings.passwordResetStep2SubmitLabel,
-        url: this.getPasswordResetUrl,
+        url: this.getSecurityQuestionUrl,
         onAfterSubmit: this.handlePasswordReset
       })
     ];
   },
   render: function() {
-    var formContent = this.state.hasSubmittedUsername
-      ? this.renderStep2()
-      : this.renderStep1();
+    var formContent;
+    if (!this.state.hasSubmittedUsername) {
+      formContent = this.renderStep1();
+    } else if (!this.state.hasResetPassword) {
+      formContent = this.renderStep2();
+    } else {
+      formContent = React.DOM.p(null, strings.resetPasswordSuccessMessage);
+    }
+
     return React.DOM.div(null, formContent);
   }
 });

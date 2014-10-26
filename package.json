@@ -16,7 +16,9 @@
     "body-parser": "~1.9.0",
     "continuation-local-storage": "~3.1.1",
     "node-uuid": "~1.4.1",
-    "bluebird": "~2.3.6"
+    "bluebird": "~2.3.6",
+    "buffertools": "~2.1.2",
+    "handlebars": "~2.0.0"
   },
   "devDependencies": {
     "mocha": "~1.21.5",

@@ -53,6 +53,7 @@ function initConfig() {
 function initDatabase(config) {
   return orm.connectAsync(config.database)
     .then(function(db) {
+      db.settings.set('instance.cache', false);
       require('./data').initialize(db);
       if (config.init) {
         return Promise.promisify(db.sync, db).call();

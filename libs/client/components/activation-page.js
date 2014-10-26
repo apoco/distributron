@@ -49,7 +49,7 @@ module.exports = React.createClass({
         LoginForm());
     } else if (this.state.isInvalidCode) {
       return React.DOM.div({ className: 'error-message' }, strings.invalidAccountActivationCodeMessage);
-    } else if (this.state.hadInternalError) {
+    } else {
       return React.DOM.div({ className: 'error-message' }, strings.internalErrorMessage);
     }
   }

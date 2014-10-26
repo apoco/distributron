@@ -70,29 +70,52 @@ module.exports = React.createClass({
 
   handleChange: function(field, e) {
     var change = { validatingPromise: this.validate() };
-    change[field.name] = e.target.value.replace(/^\s+|\s+$/g, '');
+    var normalizedValue = e.target.value.replace(/^\s+|\s+$/g, '');
+    change[field.name] = normalizedValue;
     change[field.name + 'Changed'] = true;
     this.setState(change);
+
+    this.props.onChange && this.props.onChange({ field: field.name, value: normalizedValue });
   },
 
   handleSubmit: function(e) {
     e.preventDefault();
 
-    var payload = {};
-    this.props.fields.forEach(function(field) {
-      payload[field.name] = this.state[field.name];
-    }.bind(this));
+    var url = (typeof(this.props.url) === 'function') ? this.props.url() : this.props.url;
+    var method = this.props.method || 'post';
+    var type = this.props.type || 'json';
+
+    var contentType;
+    if (type === 'json') {
+      contentType = 'application/json';
+    }
+
+    var data = {};
+    if (this.props.data) {
+      if (typeof(this.props.data) === 'function') {
+        data = this.props.data();
+      } else {
+        data = this.props.data;
+      }
+    } else {
+      this.props.fields.forEach(function(field) {
+        data[field.name] = this.state[field.name];
+      }.bind(this));
+      if (type === 'json') {
+        data = JSON.stringify(data);
+      }
+    }
 
     this.setState({ isSubmitting: true, hadSubmitError: false });
 
     Promise
       .bind(this)
       .return(reqwest({
-        url: this.props.url,
-        method: 'post',
-        type: 'json',
-        contentType: 'application/json',
-        data: JSON.stringify(payload)
+        url: url,
+        method: method,
+        type: type,
+        contentType: contentType,
+        data: data
       }))
       .then(function(res) {
         this.props.onAfterSubmit(res);

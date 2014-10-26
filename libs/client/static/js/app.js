@@ -73,7 +73,7 @@ module.exports = React.createClass({
         LoginForm());
     } else if (this.state.isInvalidCode) {
       return React.DOM.div({ className: 'error-message' }, strings.invalidAccountActivationCodeMessage);
-    } else if (this.state.hadInternalError) {
+    } else {
       return React.DOM.div({ className: 'error-message' }, strings.internalErrorMessage);
     }
   }
@@ -152,29 +152,52 @@ module.exports = React.createClass({
 
   handleChange: function(field, e) {
     var change = { validatingPromise: this.validate() };
-    change[field.name] = e.target.value.replace(/^\s+|\s+$/g, '');
+    var normalizedValue = e.target.value.replace(/^\s+|\s+$/g, '');
+    change[field.name] = normalizedValue;
     change[field.name + 'Changed'] = true;
     this.setState(change);
+
+    this.props.onChange && this.props.onChange({ field: field.name, value: normalizedValue });
   },
 
   handleSubmit: function(e) {
     e.preventDefault();
 
-    var payload = {};
-    this.props.fields.forEach(function(field) {
-      payload[field.name] = this.state[field.name];
-    }.bind(this));
+    var url = (typeof(this.props.url) === 'function') ? this.props.url() : this.props.url;
+    var method = this.props.method || 'post';
+    var type = this.props.type || 'json';
+
+    var contentType;
+    if (type === 'json') {
+      contentType = 'application/json';
+    }
+
+    var data = {};
+    if (this.props.data) {
+      if (typeof(this.props.data) === 'function') {
+        data = this.props.data();
+      } else {
+        data = this.props.data;
+      }
+    } else {
+      this.props.fields.forEach(function(field) {
+        data[field.name] = this.state[field.name];
+      }.bind(this));
+      if (type === 'json') {
+        data = JSON.stringify(data);
+      }
+    }
 
     this.setState({ isSubmitting: true, hadSubmitError: false });
 
     Promise
       .bind(this)
       .return(reqwest({
-        url: this.props.url,
-        method: 'post',
-        type: 'json',
-        contentType: 'application/json',
-        data: JSON.stringify(payload)
+        url: url,
+        method: method,
+        type: type,
+        contentType: contentType,
+        data: data
       }))
       .then(function(res) {
         this.props.onAfterSubmit(res);
@@ -317,7 +340,7 @@ var fields = [
           }
 
           var self = this;
-          return users.getByUsername(this.state.username)
+          return users.checkIfExists(this.state.username)
             .then(function() {
               // We got back a success message, so the user exists and the username is in use.
               return usernameExistsCache[self.state.username] = false;
@@ -398,8 +421,41 @@ var IsEmailRule = require('../forms/rules/email');
 var users = require('../repositories/users');
 
 module.exports = React.createClass({
-  render: function() {
-    return React.DOM.div(null,
+  getInitialState: function() {
+    return { hasSubmittedUsername: false };
+  },
+  handleFieldChange: function(e) {
+    if (e.field === 'username') {
+      this.setState({ username: e.value });
+    }
+  },
+  validateUserExists: function() {
+    if (!this.state.username) {
+      return true;
+    }
+
+    return users.checkIfExists(this.state.username)
+      .then(function() {
+        return true;
+      })
+      .catch(function() {
+        return false;
+      });
+  },
+  getSecurityQuestionUrl: function() {
+    return '/api/users/' + encodeURIComponent(this.state.username) + '/question';
+  },
+  getPasswordResetUrl: function() {
+    return '/api/users/' + encodeURIComponent(this.state.username) + '/answer';
+  },
+  handleSecurityQuestion: function(question) {
+    this.setState({ hasSubmittedUsername: true, securityQuestion: question });
+  },
+  handlePasswordReset: function() {
+
+  },
+  renderStep1: function() {
+    return [
       React.DOM.p(null, strings.passwordResetFormInstructionsStep1),
       AjaxForm({
         fields: [
@@ -412,22 +468,43 @@ module.exports = React.createClass({
               new IsEmailRule('username', strings.emailAddressValidationMessage),
               {
                 message: strings.unknownUsernameValidationMessage,
-                isValid: function() {
-                  return users.getByUsername(this.state.username)
-                    .then(function(user) {
-                      return true;
-                    })
-                    .catch(function() {
-                      return false;
-                    });
-                }
+                isValid: this.validateUserExists
               }
             ]
           }
         ],
-        submitLabel: strings.passwordResetStep1SubmitLabel
+        submitLabel: strings.passwordResetStep1SubmitLabel,
+        method: 'get',
+        data: null,
+        url: this.getSecurityQuestionUrl,
+        onChange: this.handleFieldChange,
+        onAfterSubmit: this.handleSecurityQuestion
       })
-    );
+    ];
+  },
+  renderStep2: function() {
+    return [
+      React.DOM.p(null, strings.passwordResetFormInstructionsStep2),
+      AjaxForm({
+        fields: [
+          {
+            name: 'answer',
+            type: 'password',
+            label: this.state.securityQuestion,
+            rules: [ new IsRequiredRule('answer', strings.securityAnswerRequiredValidationMessage) ]
+          }
+        ],
+        submitLabel: strings.passwordResetStep2SubmitLabel,
+        url: this.getPasswordResetUrl,
+        onAfterSubmit: this.handlePasswordReset
+      })
+    ];
+  },
+  render: function() {
+    var formContent = this.state.hasSubmittedUsername
+      ? this.renderStep2()
+      : this.renderStep1();
+    return React.DOM.div(null, formContent);
   }
 });
 
@@ -478,18 +555,18 @@ function RequiredRule(field, message) {
 'use strict';
 
 module.exports = {
-  getByUsername: getByUsername
+  checkIfExists: checkIfExists
 };
 
 var Promise = require('bluebird');
 var reqwest = require('reqwest');
 
-function getByUsername(username) {
-  return Promise.resolve(reqwest({ url: '/api/users/' + encodeURIComponent(username) }));
+function checkIfExists(username) {
+  return Promise.resolve(reqwest({ method: 'head', url: '/api/users/' + encodeURIComponent(username) }));
 }
 
 },{"bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "registrationSuccessMessage": "Your registration has been submitted. You should receive your activation email shortly.",
   "accountActivationWaitMessage": "Activating your account...",
   "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
@@ -506,7 +583,9 @@ module.exports=module.exports=module.exports=module.exports=module.exports=modul
   "securityQuestionRequiredValidationMessage": "You must enter a password reset question",
   "securityAnswerRequiredValidationMessage": "You must enter a password reset answer",
   "passwordResetFormInstructionsStep1": "To reset your password, first enter your email address.",
+  "passwordResetFormInstructionsStep2": "Now answer your password reset question.",
   "passwordResetStep1SubmitLabel": "Next",
+  "passwordResetStep2SubmitLabel": "Submit",
   "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered"
 }
 
@@ -28388,7 +28467,8 @@ module.exports = require('./lib/React');
   }
 
   function setType(header) {
-    // json, javascript, text/plain, text/html, xml
+    // json, javascript, text/plain, text/html, xml, empty
+    if (!header) return 'empty'
     if (header.match('json')) return 'json'
     if (header.match('javascript')) return 'js'
     if (header.match('text')) return 'html'
@@ -28483,7 +28563,12 @@ module.exports = require('./lib/React');
             ? null
             : resp.responseXML
           break
+        case 'empty':
+          resp = null
+          break
         }
+      } else if (type === 'empty') {
+        resp = null;
       }
 
       self._responseArgs.resp = resp

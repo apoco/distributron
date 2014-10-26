@@ -1,12 +1,12 @@
 'use strict';
 
 module.exports = {
-  getByUsername: getByUsername
+  checkIfExists: checkIfExists
 };
 
 var Promise = require('bluebird');
 var reqwest = require('reqwest');
 
-function getByUsername(username) {
-  return Promise.resolve(reqwest({ url: '/api/users/' + encodeURIComponent(username) }));
+function checkIfExists(username) {
+  return Promise.resolve(reqwest({ method: 'head', url: '/api/users/' + encodeURIComponent(username) }));
 }

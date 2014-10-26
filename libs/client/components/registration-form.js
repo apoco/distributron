@@ -31,7 +31,7 @@ var fields = [
           }
 
           var self = this;
-          return users.getByUsername(this.state.username)
+          return users.checkIfExists(this.state.username)
             .then(function() {
               // We got back a success message, so the user exists and the username is in use.
               return usernameExistsCache[self.state.username] = false;

@@ -21,13 +21,15 @@ function handleUsersPost(req, res, next) {
     return void res.status(422).send('You must provide a valid email address');
   }
 
+  var user;
   ensureIsNewUser(req)
     .then(generateUser.bind(null, req))
-    .then(function(user) {
-      return Promise.all([
-        usersRepo.createAsync(user),
-        sendEmail(user)
-      ]);
+    .then(function(generatedUser) {
+      user = generatedUser;
+      return usersRepo.createAsync(user);
+    })
+    .then(function() {
+      return sendEmail(user);
     })
     .then(function() {
       res.status(204).end();
@@ -35,9 +37,7 @@ function handleUsersPost(req, res, next) {
     .catch(UserAlreadyActivatedError, function(err) {
       res.status(422).send(err.message);
     })
-    .catch(function(err) {
-      return void next(err);
-    });
+    .catch(next);
 }
 
 function ensureIsNewUser(req) {

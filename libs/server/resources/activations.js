@@ -6,9 +6,10 @@ module.exports = {
   }
 };
 
-var async = require('async');
-var usersRepo = require('../data').repositories.users;
+var Promise = require('bluebird');
+var usersRepo = Promise.promisifyAll(require('../data').repositories.users);
 var status = require('../enums/user-status');
+var NotFoundError = require('../errors/not-found');
 
 function handleActivationPost(req, res, next) {
   if (!req.body.code) {
@@ -16,29 +17,27 @@ function handleActivationPost(req, res, next) {
   }
 
   var user;
-  async.waterfall([
-    function(next) {
-      usersRepo.find({ activationCode: req.body.code }, next);
-    },
-    function(users, next) {
-      if (!users.length) {
-        return void res.status(422).send('Invalid activation code');
+  usersRepo.findAsync({ activationCode: req.body.code })
+    .get(0)
+    .then(function(dbUser) {
+      user = dbUser;
+
+      if (!user) {
+        throw new NotFoundError();
       }
 
-      user = users[0];
       if (user.status === status.pending) {
         user.activatedTimestamp = Date.now();
         user.status = status.active;
-        user.save(next);
-      } else {
-        next(null, user);
+        return Promise.promisify(user.save, user).call();
       }
-    }
-  ], function(err) {
-    if (err) {
-      return void next(err);
-    }
-
-    res.redirect('/api/users/' + encodeURIComponent(user.username));
-  })
+    })
+    .then(function() {
+      res.location('/api/users/' + encodeURIComponent(user.username));
+      res.status(201).json({ username: user.username });
+    })
+    .catch(NotFoundError, function(err) {
+      res.status(422).send('Invalid activation code');
+    })
+    .catch(next);
 }

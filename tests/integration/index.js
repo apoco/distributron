@@ -374,17 +374,7 @@ describe('The Distributron', function() {
       return registerNewUser()
         .then(function(result) {
           registrationData = result.inputValues;
-          return goToPasswordResetForm();
-        })
-        .then(function() {
-          return fillInput('input[name="username"]', registrationData.username);
-        })
-        .then(function() {
-          return select('input[type="submit"]');
-        })
-        .call('click')
-        .then(function() {
-          return waitForElement('input[name="answer"]');
+          return submitPasswordResetWithUserName(registrationData.username);
         })
         .call('getAttribute', 'id')
         .then(function(id) {
@@ -398,7 +388,26 @@ describe('The Distributron', function() {
 
     it('has a reset button to return to the username entry');
 
-    it('validates that the security answer is correct');
+    it('validates that the security answer is correct', function() {
+      var user;
+      return registerNewUser()
+        .then(function(result) {
+          user = result.inputValues;
+          return submitPasswordResetWithUserName(user.username);
+        })
+        .then(function() {
+          return fillInput('input[name="answer"]', 'wrong answer');
+        })
+        .then(function() {
+          return click('input[type="submit"]');
+        })
+        .then(function() {
+          return waitForElement('form .error');
+        })
+        .then(function(error) {
+          expect(error).to.exist;
+        });
+    });
 
     it('shows a success message and sends a password reset email if the security answer is correct');
 
@@ -407,7 +416,21 @@ describe('The Distributron', function() {
     function goToPasswordResetForm() {
       return goToUrl('/reset-password');
     }
-  });
+
+    function submitPasswordResetWithUserName(username) {
+      return goToPasswordResetForm()
+        .then(function() {
+          return fillInput('input[name="username"]', username);
+        })
+        .then(function() {
+          return select('input[type="submit"]');
+        })
+        .call('click')
+        .then(function() {
+          return waitForElement('input[name="answer"]');
+        });
+    }
+});
 
   describe('dashboard', function() {
     it('exists');
@@ -472,14 +495,29 @@ describe('The Distributron', function() {
       return select(input).then(function(input) { return fillInput(input, text); });
     }
 
-    return input.click()
+    return Promise
+      .resolve(click(input))
+      .call(
+        'sendKeys',
+        webdriver.Key.chord(webdriver.Key.CONTROL, 'a'),
+        webdriver.Key.BACK_SPACE,
+        text,
+        webdriver.Key.TAB);
+  }
+
+  function click(element) {
+    if (typeof(element) === 'string') {
+      return select(element).then(click);
+    }
+
+    return element.click()
       .then(function() {
-        return input.sendKeys(
-          webdriver.Key.chord(webdriver.Key.CONTROL, 'a'),
-          webdriver.Key.BACK_SPACE,
-          text,
-          webdriver.Key.TAB);
+        return element;
       });
+  }
+
+  function waitUntilEnabled(element, timeout) {
+    return waitFor(function() { return element.isEnabled(); }, timeout || 2000);
   }
 
   function goToRegistrationForm() {
@@ -531,7 +569,7 @@ describe('The Distributron', function() {
     return populateRegistrationForm(fieldValues)
       .then(function(formInputs) {
         inputs = formInputs;
-        return waitFor(function() { return inputs.submit.isEnabled(); }, 5000);
+        return waitUntilEnabled(inputs.submit);
       })
       .then(function() {
         return inputs.submit.click();

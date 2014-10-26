@@ -17,6 +17,7 @@ module.exports = React.createClass({
         id: fieldId,
         name: this.props.name,
         type: this.props.type,
+        defaultValue: this.props.defaultValue,
         onChange: this.props.onChange
       }),
       this.props.validationMessage && React.DOM.div({ className: 'error' }, this.props.validationMessage));

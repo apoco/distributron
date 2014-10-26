@@ -3,6 +3,7 @@
 var React = require('react');
 var LoginForm = require('./login-form');
 var reqwest = require('reqwest');
+var tr = require('../localization').translate;
 var strings = require('../strings');
 
 module.exports = React.createClass({
@@ -42,15 +43,17 @@ module.exports = React.createClass({
   },
   render: function() {
     if (this.state.isActivating) {
-      return React.DOM.div({ className: 'wait-message' }, strings.accountActivationWaitMessage);
+      return React.DOM.div({ className: 'wait-message' }, tr('Activating your account...'));
     } else if (this.state.username) {
       return React.DOM.div(null,
-        React.DOM.div({ className: 'success-message' }, strings.accountActivationSuccessMessage),
+        React.DOM.div(
+          { className: 'success-message' },
+          tr('Your account has been activated. Enter your email address and password to enter the site.')),
         LoginForm());
     } else if (this.state.isInvalidCode) {
-      return React.DOM.div({ className: 'error-message' }, strings.invalidAccountActivationCodeMessage);
+      return React.DOM.div({ className: 'error-message' }, tr('Invalid access code'));
     } else {
-      return React.DOM.div({ className: 'error-message' }, strings.internalErrorMessage);
+      return React.DOM.div({ className: 'error-message' }, tr('Strange, something is not working right. Please try again later.'));
     }
   }
 });

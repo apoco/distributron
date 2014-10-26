@@ -15,7 +15,7 @@ React.renderComponent(
     Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
     Route({
       name: 'reset-password',
-      path: '/reset-password',
+      path: '/reset-password/?:username?',
       handler: require('./components/reset-password-form')
     }),
     DefaultRoute({ handler: LoginForm })),
@@ -27,6 +27,7 @@ React.renderComponent(
 var React = require('react');
 var LoginForm = require('./login-form');
 var reqwest = require('reqwest');
+var tr = require('../localization').translate;
 var strings = require('../strings');
 
 module.exports = React.createClass({
@@ -66,20 +67,22 @@ module.exports = React.createClass({
   },
   render: function() {
     if (this.state.isActivating) {
-      return React.DOM.div({ className: 'wait-message' }, strings.accountActivationWaitMessage);
+      return React.DOM.div({ className: 'wait-message' }, tr('Activating your account...'));
     } else if (this.state.username) {
       return React.DOM.div(null,
-        React.DOM.div({ className: 'success-message' }, strings.accountActivationSuccessMessage),
+        React.DOM.div(
+          { className: 'success-message' },
+          tr('Your account has been activated. Enter your email address and password to enter the site.')),
         LoginForm());
     } else if (this.state.isInvalidCode) {
-      return React.DOM.div({ className: 'error-message' }, strings.invalidAccountActivationCodeMessage);
+      return React.DOM.div({ className: 'error-message' }, tr('Invalid access code'));
     } else {
-      return React.DOM.div({ className: 'error-message' }, strings.internalErrorMessage);
+      return React.DOM.div({ className: 'error-message' }, tr('Strange, something is not working right. Please try again later.'));
     }
   }
 });
 
-},{"../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./login-form":"/home/jacob/Code/distributron/libs/client/components/login-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/ajax-form.js":[function(require,module,exports){
+},{"../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./login-form":"/home/jacob/Code/distributron/libs/client/components/login-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/ajax-form.js":[function(require,module,exports){
 "use strict";
 
 var Promise = require('bluebird');
@@ -87,7 +90,7 @@ var React = require('react');
 var Field = require('./field');
 var reqwest = require('reqwest');
 var ValidationError = require('../errors/validation');
-var strings = require('../strings');
+var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'AjaxForm',
@@ -242,12 +245,15 @@ module.exports = React.createClass({
     return React.DOM.form({ onSubmit: this.handleSubmit },
       this.renderFields(validationMessages),
       this.state.hadSubmitError
-        ? React.DOM.div({ className: 'error' }, strings.unknownErrorMessage)
+        ? React.DOM.div(
+          { className: 'error' },
+          tr("We were unable to process your request. You may want to try again later."))
         : null,
       React.DOM.input(submitProps));
   }
 });
-},{"../errors/validation":"/home/jacob/Code/distributron/libs/client/errors/validation.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./field":"/home/jacob/Code/distributron/libs/client/components/field.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/field.js":[function(require,module,exports){
+
+},{"../errors/validation":"/home/jacob/Code/distributron/libs/client/errors/validation.js","../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","./field":"/home/jacob/Code/distributron/libs/client/components/field.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/field.js":[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -267,6 +273,7 @@ module.exports = React.createClass({
         id: fieldId,
         name: this.props.name,
         type: this.props.type,
+        defaultValue: this.props.defaultValue,
         onChange: this.props.onChange
       }),
       this.props.validationMessage && React.DOM.div({ className: 'error' }, this.props.validationMessage));
@@ -279,7 +286,7 @@ module.exports = React.createClass({
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
-var strings = require('../strings');
+var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'LoginForm',
@@ -290,23 +297,23 @@ module.exports = React.createClass({
           {
             name: 'username',
             type: 'email',
-            label: strings.loginFormUsernameLabel
+            label: tr('Email address')
           },
           {
             name: 'password',
             type: 'password',
-            label: strings.loginFormPasswordLabel,
+            label: tr('Password')
           }
         ]
       }),
       React.DOM.nav(null,
-        Link({ to: 'register' }, strings.loginFormRegistrationLinkText),
-        Link({ to: 'reset-password' }, strings.loginFormPasswordResetLinkText)
+        Link({ to: 'register' }, tr('Create a login')),
+        Link({ to: 'reset-password' }, tr('Reset my password'))
       ));
   }
 });
 
-},{"../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/registration-form.js":[function(require,module,exports){
+},{"../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/registration-form.js":[function(require,module,exports){
 "use strict";
 
 var Promise = require('bluebird');
@@ -315,21 +322,22 @@ var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var users = require('../repositories/users');
 var validator = require('../../common/validator');
-var strings = require('../strings');
+var tr = require('../localization').translate;
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');
+var FieldsMatchRule = require('../forms/rules/fields-match');
 var usernameExistsCache = {};
 
 var fields = [
   {
     name: 'username',
     type: 'email',
-    label: 'Email address',
+    label: tr('Email address'),
     rules: [
-      new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
-      new IsEmailRule('username', strings.emailAddressValidationMessage),
+      new IsRequiredRule('username', tr('You must enter an email address')),
+      new IsEmailRule('username', tr('Invalid email address')),
       {
-        message: 'There is already an account using this email address',
+        message: tr('There is already an account using this email address'),
         isValid: function() {
           if (!this.state.username) {
             return true;
@@ -355,36 +363,29 @@ var fields = [
   {
     name: 'password',
     type: 'password',
-    label: 'Password',
+    label: tr('Password'),
     rules: [
-      new IsRequiredRule('password', strings.passwordRequiredValidationMessage)
+      new IsRequiredRule('password', tr('You must enter a password'))
     ]
   },
   {
     name: 'confirm',
     type: 'password',
-    label: 'Re-enter password',
-    rules: [
-      {
-        message: 'Your passwords do not match',
-        isValid: function() { return this.state.password === this.state.confirm; }
-      }
-    ]
+    label: tr('Re-enter password'),
+    rules: [ new FieldsMatchRule('password', 'confirm', tr('Your passwords do not match')) ]
   },
   {
     name: 'question',
     type: 'text',
-    label: 'Password reset question',
-    rules: [
-      new IsRequiredRule('question', strings.securityQuestionRequiredValidationMessage)
-    ]
+    label: tr('Password reset question'),
+    rules: [ new IsRequiredRule('question', tr('You must enter a password reset question')) ]
   },
   {
     name: 'answer',
     type: 'password',
-    label: 'Password reset answer',
+    label: tr('Password reset answer'),
     rules: [
-      new IsRequiredRule('answer', strings.securityAnswerRequiredValidationMessage)
+      new IsRequiredRule('answer', tr('You must enter a password reset answer'))
     ]
   }
 ];
@@ -399,25 +400,26 @@ module.exports = React.createClass({
   },
   render: function() {
     return (this.state.submitted
-      ? React.DOM.p(null, require('../strings').registrationSuccessMessage)
+      ? React.DOM.p(null, tr('Your registration has been submitted. You should receive your activation email shortly.'))
       : React.DOM.div({ id: 'registration-form' },
         AjaxForm({
           fields: fields,
           url: '/api/users/',
           onAfterSubmit: this.handleSuccess
         }),
-        Link({ to: 'login' }, 'I already have an account')));
+        Link({ to: 'login' }, tr('I already have an account'))));
   }
 });
 
-},{"../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js","../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../repositories/users":"/home/jacob/Code/distributron/libs/client/repositories/users.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js":[function(require,module,exports){
+},{"../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js","../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/fields-match":"/home/jacob/Code/distributron/libs/client/forms/rules/fields-match.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","../repositories/users":"/home/jacob/Code/distributron/libs/client/repositories/users.js","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
 var AjaxForm = require('./ajax-form');
-var strings = require('../strings');
+var tr = require('../localization').translate;
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');
+var FieldsMatchRule = require('../forms/rules/fields-match');
 var users = require('../repositories/users');
 
 module.exports = React.createClass({
@@ -453,24 +455,24 @@ module.exports = React.createClass({
   },
   renderStep1: function() {
     return [
-      React.DOM.p(null, strings.passwordResetFormInstructionsStep1),
+      React.DOM.p(null, tr('To reset your password, first enter your email address.')),
       AjaxForm({
         fields: [
           {
             name: 'username',
             type: 'email',
-            label: 'Email address',
+            label: tr('Email address'),
             rules: [
-              new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
-              new IsEmailRule('username', strings.emailAddressValidationMessage),
+              new IsRequiredRule('username', tr('You must enter an email address')),
+              new IsEmailRule('username', tr('Invalid email address')),
               {
-                message: strings.unknownUsernameValidationMessage,
+                message: tr("We don't have that email address on file; perhaps you're not yet registered"),
                 isValid: this.validateUserExists
               }
             ]
           }
         ],
-        submitLabel: strings.passwordResetStep1SubmitLabel,
+        submitLabel: tr('Next'),
         method: 'get',
         data: null,
         url: this.getSecurityQuestionUrl,
@@ -481,17 +483,48 @@ module.exports = React.createClass({
   },
   renderStep2: function() {
     return [
-      React.DOM.p(null, strings.passwordResetFormInstructionsStep2),
+      React.DOM.p(null, tr('Now answer your password reset question.')),
       AjaxForm({
         fields: [
           {
             name: 'answer',
             type: 'password',
             label: this.state.securityQuestion,
-            rules: [ new IsRequiredRule('answer', strings.securityAnswerRequiredValidationMessage) ]
+            rules: [ new IsRequiredRule('answer', tr('You must enter a password reset answer')) ]
           }
         ],
-        submitLabel: strings.passwordResetStep2SubmitLabel,
+        submitLabel: tr('Submit'),
+        url: this.getSecurityQuestionUrl,
+        onAfterSubmit: this.handlePasswordReset
+      })
+    ];
+  },
+  renderNewPasswordForm: function() {
+    return [
+      React.DOM.p(null, tr('Enter your new password to complete your password reset.')),
+      AjaxForm({
+        fields: [
+          {
+            name: 'old',
+            type: 'password',
+            label: tr('Current password'),
+            defaultValue: this.props.query.password,
+            rules: [ new IsRequiredRule('old', tr('You must provide your current password')) ]
+          },
+          {
+            name: 'password',
+            type: 'password',
+            label: tr('New password'),
+            rules: [ new IsRequiredRule('password', tr('You must enter a password')) ]
+          },
+          {
+            name: 'confirm',
+            type: 'password',
+            label: tr('Re-enter password'),
+            rules: [ new FieldsMatchRule('password', 'confirm', tr('Your passwords do not match')) ]
+          }
+        ],
+        submitLabel: tr('Submit'),
         url: this.getSecurityQuestionUrl,
         onAfterSubmit: this.handlePasswordReset
       })
@@ -499,19 +532,23 @@ module.exports = React.createClass({
   },
   render: function() {
     var formContent;
-    if (!this.state.hasSubmittedUsername) {
+    if (this.props.params.username) {
+      formContent = this.renderNewPasswordForm();
+    } else if (!this.state.hasSubmittedUsername) {
       formContent = this.renderStep1();
     } else if (!this.state.hasResetPassword) {
       formContent = this.renderStep2();
     } else {
-      formContent = React.DOM.p(null, strings.resetPasswordSuccessMessage);
+      formContent = React.DOM.p(
+        null,
+        tr('Your reset request has been accepted. You should receive an email with your temporary password shortly.'));
     }
 
     return React.DOM.div(null, formContent);
   }
 });
 
-},{"../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../repositories/users":"/home/jacob/Code/distributron/libs/client/repositories/users.js","../strings":"/home/jacob/Code/distributron/libs/client/strings/index.json","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/errors/validation.js":[function(require,module,exports){
+},{"../forms/rules/email":"/home/jacob/Code/distributron/libs/client/forms/rules/email.js","../forms/rules/fields-match":"/home/jacob/Code/distributron/libs/client/forms/rules/fields-match.js","../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","../repositories/users":"/home/jacob/Code/distributron/libs/client/repositories/users.js","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/errors/validation.js":[function(require,module,exports){
 'use strict';
 
 module.exports = ValidationError;
@@ -540,7 +577,18 @@ function EmailRule(field, message) {
   };
 }
 
-},{"../../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js"}],"/home/jacob/Code/distributron/libs/client/forms/rules/required.js":[function(require,module,exports){
+},{"../../../common/validator":"/home/jacob/Code/distributron/libs/common/validator.js"}],"/home/jacob/Code/distributron/libs/client/forms/rules/fields-match.js":[function(require,module,exports){
+'use strict';
+
+module.exports = FieldsMatchRule;
+
+function FieldsMatchRule(field1, field2, message) {
+  return {
+    message: message,
+    isValid: function() { return this.state[field1] === this.state[field2]; }
+  }
+}
+},{}],"/home/jacob/Code/distributron/libs/client/forms/rules/required.js":[function(require,module,exports){
 'use strict';
 
 module.exports = RequiredRule;
@@ -553,6 +601,21 @@ function RequiredRule(field, message) {
     }
   };
 }
+
+},{}],"/home/jacob/Code/distributron/libs/client/localization/index.js":[function(require,module,exports){
+'use strict';
+
+var Localizer = require('localize');
+var translations = require('./translations.json');
+var localizer = new Localizer(translations);
+
+localizer.setLocale(navigator.userLanguage || navigator.language || 'en-US');
+localizer.throwOnMissingTranslation(false);
+
+module.exports = localizer;
+
+},{"./translations.json":"/home/jacob/Code/distributron/libs/client/localization/translations.json","localize":"/home/jacob/Code/distributron/node_modules/localize/lib/localize.js"}],"/home/jacob/Code/distributron/libs/client/localization/translations.json":[function(require,module,exports){
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={}
 
 },{}],"/home/jacob/Code/distributron/libs/client/repositories/users.js":[function(require,module,exports){
 'use strict';
@@ -569,17 +632,7 @@ function checkIfExists(username) {
 }
 
 },{"bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports={
-  "registrationSuccessMessage": "Your registration has been submitted. You should receive your activation email shortly.",
-  "accountActivationWaitMessage": "Activating your account...",
-  "accountActivationSuccessMessage": "Your account has been activated. Enter your email address and password to enter the site.",
-  "invalidAccountActivationCodeMessage": "Invalid access code.",
-  "internalErrorMessage": "Sorry, something went wrong. It's not you, it's us. Please try again later.",
-  "loginFormUsernameLabel": "Email address",
-  "loginFormPasswordLabel": "Password",
-  "loginFormRegistrationLinkText": "Create a login",
-  "loginFormPasswordResetLinkText": "Reset my password",
-  "unknownErrorMessage": "We were unable to process your request. You may want to try again later.",
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "emailAddressRequiredValidationMessage": "You must enter an email address",
   "emailAddressValidationMessage": "Invalid email address",
   "passwordRequiredValidationMessage": "You must enter a password",
@@ -590,7 +643,11 @@ module.exports={
   "passwordResetStep1SubmitLabel": "Next",
   "passwordResetStep2SubmitLabel": "Submit",
   "unknownUsernameValidationMessage": "We don't have that email address on file; perhaps it is not registered",
-  "resetPasswordSuccessMessage": "You have successfully reset your password. You should receive an email with your temporary password shortly."
+  "resetPasswordSuccessMessage": "Your reset request has been accepted. You should receive an email with your temporary password shortly.",
+  "passwordResetFormInstructionsStep3": "Enter your new password to complete your password reset.",
+  "currentPasswordLabel": "Current password",
+  "currentPasswordRequiredValidationMessage": "You must provide your current password",
+  "newPasswordLabel": "New password"
 }
 
 },{}],"/home/jacob/Code/distributron/libs/common/validator.js":[function(require,module,exports){
@@ -5889,7 +5946,415 @@ var ret = {
 
 module.exports = ret;
 
-},{"./es5.js":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/es5.js"}],"/home/jacob/Code/distributron/node_modules/react-router/modules/actions/LocationActions.js":[function(require,module,exports){
+},{"./es5.js":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/es5.js"}],"/home/jacob/Code/distributron/node_modules/localize/lib/localize.js":[function(require,module,exports){
+// # Localize
+// is a GNU gettext-inspired (but not conformant) localization library for
+// Node.js
+
+var path = require('path');
+var fs = require('fs');
+
+function Localize(translations, dateFormats, defaultLocale) {
+
+    // Make sure the defaultLocale is something sane, and set the locale to
+    // its value. Also configure ``Localize`` to throw an error if missing
+    // a translation.
+    defaultLocale = typeof(defaultLocale) === "string" ? defaultLocale : "en";
+    var locale = defaultLocale;
+    var missingTranslationThrow = true;
+
+    // ## The *mergeObjs* function
+    // is a simple helper function to create a new object based on input objects.
+    function mergeObjs() {
+        var outObj = {};
+        for(var i in arguments) {
+            if(arguments[i] instanceof Object) {
+                /* jshint forin: false */
+                for(var j in arguments[i]) {
+                    // Does not check for collisions, newer object
+                    // definitions clobber old definitions
+                    outObj[j] = arguments[i][j];
+                }
+            }
+        }
+        return outObj;
+    }
+
+    // ## The *setLocale* function
+    // simply sets the locale to whatever is specified at the moment, as long as it
+    // is a string.
+    this.setLocale = function(newLocale) {
+        if(typeof(newLocale) === "string") {
+            locale = newLocale;
+        } else {
+            throw new Error("Locale must be a string");
+        }
+    };
+
+    // ## The *strings* object
+    // contains a series of key-val pairs to be used for translating very large strings
+    // that aren't desirable to have duplicated in several locations
+    this.strings = {};
+
+    // ## The *getTranslations* function
+    // is a recursive function that checks the specified directory, and all child
+    // directories, for ``translations.json`` files, combines them into one JSON
+    // object, and returns them.
+    function getTranslations(currDir, translations, strings) {
+        if(fs.existsSync(currDir)) {
+            // Load translations.json file in current directory, if any
+            if(fs.existsSync(path.join(currDir, "translations.json"))) {
+                translations = mergeObjs(translations,
+                    JSON.parse(fs.readFileSync(path.join(path.resolve(currDir), "translations.json")))
+                );
+            }
+            var pathChildren;
+            // Load large text translations in translations subdirectory, if it exists
+            var translationPath = path.join(currDir, "translations");
+            if(fs.existsSync(translationPath) && fs.statSync(translationPath).isDirectory()) {
+                // Get all children in the translations directory
+                pathChildren = fs.readdirSync(translationPath);
+                // Filter out all non-default translations (the ones without a lang type)
+                pathChildren.filter(function(child) {
+                    return !/^.*\..*\..*/.test(child);
+                    // And map these default translations into an object containing the variable name to use,
+                    // the default text, and an array of translations for this text
+                }).map(function(child) {
+                    return {
+                        name: child.replace(/\..*$/, ""),
+                        defaultText: fs.readFileSync(path.join(translationPath, child), 'utf8'),
+                        // To make the array of translations for this default translation, filter out
+                        // all files that do not start with the primary translation filename (minus extension), with a special
+                        // case to filter out the primary translation, as well
+                        translations: pathChildren.filter(function(secondChild) {
+                            return (new RegExp("^" + child.replace(/\..*$/, ""))).test(secondChild) && child !== secondChild;
+                            // Then map this array of files into an object containing the language specified
+                            // and the translation text for this language
+                        }).map(function(secondChild) {
+                            return {
+                                lang: secondChild.replace(/\.[^\.]*$/, "").replace(/^[^\.]*\./, ""),
+                                text: fs.readFileSync(path.join(translationPath, secondChild), 'utf8')
+                            };
+                        })
+                    };
+                    // For each of these long-form translation objects, add the default text to the strings object using the
+                    // desired variable name, and create a translation object for all defined languages for this text.
+                }).forEach(function(translation) {
+                    strings[translation.name] = translation.defaultText;
+                    translations[translation.defaultText] = {};
+                    translation.translations.forEach(function(lang) {
+                        translations[translation.defaultText][lang.lang] = lang.text;
+                    });
+                });
+            }
+            // Recurse down each directory and get the translations for that directory
+            pathChildren = fs.readdirSync(currDir);
+            /* jshint forin: false */
+            for(var child in pathChildren) {
+                var childPath = path.resolve(path.join(currDir, pathChildren[child]));
+                if(fs.statSync(childPath).isDirectory()) {
+                    var tempArray = getTranslations(childPath, translations, strings);
+                    translations = tempArray[0];
+                    strings = tempArray[1];
+                }
+            }
+        } else {
+            throw new Error("Translation Path Invalid");
+        }
+        return [translations, strings];
+    }
+
+    // ## The *validateTranslations* function
+    // determines whether or not the provided JSON object is in a valid
+    // format for ``localize``.
+    function validateTranslations(newTranslations) {
+        if(typeof(newTranslations) !== "object") { return false; }
+        /* jshint forin: false */
+        for(var translation in newTranslations) {
+            if(typeof(translation) !== "string") { return false; }
+            if(typeof(newTranslations[translation]) !== "object" ) { return false; }
+            for(var lang in newTranslations[translation]) {
+                if(typeof(lang) !== "string") { return false; }
+                if(typeof(newTranslations[translation][lang]) !== "string") { return false; }
+            }
+        }
+        return true;
+    }
+
+    // ## The *loadTranslations* function
+    // takes a string or object, and attempts to append the specified translation
+    // to its store of translations, either by loading all translations from the
+    // specified directory (string), or appending the object directly.
+    this.loadTranslations = function(newTranslations) {
+        if(typeof(newTranslations) === "string") {
+            var tempArray = getTranslations(newTranslations, {}, this.strings);
+            newTranslations = tempArray[0];
+            this.strings = tempArray[1];
+        }
+        if(validateTranslations(newTranslations)) {
+            translations = mergeObjs(translations, newTranslations);
+        } else {
+            throw new Error("Must provide a valid set of translations.");
+        }
+    };
+
+    // Now that we have the infrastructure in place, let's verify that the
+    // provided translations are valid.
+    this.loadTranslations(translations);
+
+    // ## The *clearTranslations* function
+    // simply resets the translations variable to a clean slate.
+    this.clearTranslations = function() {
+        translations = {};
+    };
+
+    // ## The *getTranslations* function
+    // simply returns the entire translations object, or returns that portion
+    // of translations matched by the elements of a provided array of text to
+    // translate
+    this.getTranslations = function(textArr) {
+        if(textArr instanceof Array) {
+            var outObj = {};
+            textArr.forEach(function(text) {
+                outObj[text] = translations[text];
+            });
+            return outObj;
+        } else {
+            return translations;
+        }
+    };
+
+    // ## The *throwOnMissingTranslation* function
+    // lets the user decide if a missing translation should cause an Error
+    // to be thrown. Turning it off for development and on for testing is
+    // recommended. The function coerces whatever it receives into a bool.
+    this.throwOnMissingTranslation = function(shouldThrow) {
+        missingTranslationThrow = !!shouldThrow;
+    };
+
+    // ## The *buildString* function
+    // is a string-building function inspired by both ``sprintf`` and
+    // [jQuery Templates](http://api.jquery.com/category/plugins/templates/)
+    // and a small helping of RegExp. The first argument to buildString is
+    // the source string, which has special ``$[x]`` blocks, where ``x`` is
+    // a number from 1 to Infinity, matching the nth argument provided.
+    // Because of ``.toString()``, string formatting _a la_ ``sprintf`` is
+    // avoided, and the numeric identification allows the same parameter to
+    // be used multiple times, and the parameter order need not match the
+    // string referencing order (important for translations)
+    function buildString() {
+        var outString = arguments[0];
+        for(var i = 1; i < arguments.length; i++) {
+            outString = outString.replace(new RegExp("\\$\\[" + i + "\\]", "g"), arguments[i]);
+        }
+        return outString;
+    }
+
+    // ## The *translate* function
+    // is a thin automatic substitution wrapper around ``buildString``. In
+    // fact, it short-circuits to ``buildString`` when ``locale`` equals
+    // ``defaultLocale``. Otherwise, it looks up the required translated
+    // string and executes ``buildString`` on that, instead
+    this.translate = function() {
+        if(locale === defaultLocale) {
+            return buildString.apply(this, arguments);
+        }
+        var newText = translations[arguments[0]] && translations[arguments[0]][locale] ?
+            translations[arguments[0]][locale] : null;
+        if(missingTranslationThrow && typeof(newText) !== "string") {
+            throw new Error("Could not find translation for '" +
+                            arguments[0] + "' in the " + locale + " locale");
+        } else if(typeof(newText) !== "string") {
+            newText = arguments[0];
+        }
+        var newArr = Array.prototype.splice.call(arguments, 1, arguments.length - 1);
+        newArr.unshift(newText);
+        return buildString.apply(this, newArr);
+    };
+
+    // ## The *validateDateFormats* function
+    // determines whether or not the provided dateFormat object conforms to
+    // the necessary structure
+    function validateDateFormats(dateFormats) {
+        if(typeof(dateFormats) !== "object") { return false; }
+        /* jshint forin: false */
+        for(var lang in dateFormats) {
+            if(typeof(lang) !== "string") { return false; }
+            if(typeof(dateFormats[lang]) !== "object") { return false; }
+            if(!(dateFormats[lang].dayNames instanceof Array)) { return false; }
+            if(!(dateFormats[lang].monthNames instanceof Array)) { return false; }
+            if(typeof(dateFormats[lang].masks) !== "object") { return false; }
+            if(typeof(dateFormats[lang].masks["default"]) !== "string") { return false; }
+            if(dateFormats[lang].dayNames.length !== 14) { return false; }
+            if(dateFormats[lang].monthNames.length !== 24) { return false; }
+            for(var i = 0; i < 24; i++) {
+                if(i < 14 && typeof(dateFormats[lang].dayNames[i]) !== "string") { return false; }
+                if(typeof(dateFormats[lang].monthNames[i]) !== "string") { return false; }
+            }
+        }
+        return true;
+    }
+
+    // ## The *loadDateFormats* function
+    // appends the provided ``dateFormats`` object, if valid, to the current
+    // ``dateFormats`` object. Otherwise, it throws an error.
+    this.loadDateFormats = function(newDateFormats) {
+        if(validateDateFormats(newDateFormats)) {
+            dateFormats = mergeObjs(dateFormats, newDateFormats);
+        } else {
+            throw new Error("Invalid Date Format provided");
+        }
+    };
+
+    // ## The *clearDateFormats* function
+    // resets the ``dateFormats`` object to English dates.
+    this.clearDateFormats = function() {
+        dateFormats = {
+            "en": {
+                dayNames: [
+                    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat",
+                    "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"
+                ],
+                monthNames: [
+                    "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
+                    "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"
+                ],
+                masks: {
+                    "default":      "ddd mmm dd yyyy HH:MM:ss",
+                    shortDate:      "m/d/yy",
+                    mediumDate:     "mmm d, yyyy",
+                    longDate:       "mmmm d, yyyy",
+                    fullDate:       "dddd, mmmm d, yyyy",
+                    shortTime:      "h:MM TT",
+                    mediumTime:     "h:MM:ss TT",
+                    longTime:       "h:MM:ss TT Z",
+                    isoDate:        "yyyy-mm-dd",
+                    isoTime:        "HH:MM:ss",
+                    isoDateTime:    "yyyy-mm-dd'T'HH:MM:ss",
+                    isoUtcDateTime: "UTC:yyyy-mm-dd'T'HH:MM:ss'Z'"
+                }
+            }
+        };
+    };
+
+    // ## The *getDateFormats* function
+    // returns the currently-defined ``dateFormats`` object
+    this.getDateFormats = function() {
+        return dateFormats;
+    };
+
+    // Now that we have the infrastructure in place, let's validate the
+    // optional ``dateFormats`` object if provided, or initialize it.
+    if(validateDateFormats(dateFormats)) {
+        this.loadDateFormats(dateFormats);
+    } else {
+        this.clearDateFormats();
+    }
+
+    // The *localDate* function
+    // provides easy-to-use date localization support. Based heavily on
+    // [node-dateFormat](https://github.com/felixge/node-dateformat) by
+    // Steven Levithan <stevenlevithan.com>
+    // Scott Trenda <scott.trenda.net>
+    // Kris Kowal <cixar.com/~kris.kowal/>
+    // Felix Geisendörfer <debuggable.com>
+    // MIT Licensed, as with this library. The resultant API is one where
+    // a date string or object is the first argument, a mask string (being
+    // either a key in the ``masks`` object or an arbitrary mask is the
+    // second argument, and a third is a bool flag on whether local or UTC
+    // time should be used.
+    this.localDate = (function() {
+        var	token = /d{1,4}|m{1,4}|yy(?:yy)?|([HhMsTt])\1?|[LloSZ]|"[^"]*"|'[^']*'/g,
+            timezone = /\b(?:[PMCEA][SDP]T|(?:Pacific|Mountain|Central|Eastern|Atlantic) (?:Standard|Daylight|Prevailing) Time|(?:GMT|UTC)(?:[-+]\d{4})?)\b/g,
+            timezoneClip = /[^-+\dA-Z]/g,
+            pad = function (val, len) {
+                val = String(val);
+                len = len || 2;
+                while (val.length < len) val = "0" + val;
+                return val;
+            };
+
+        // Regexes and supporting functions are cached through closure
+        return function (date, mask, utc) {
+            // You can't provide utc if you skip other args (use the "UTC:" mask prefix)
+            if (arguments.length === 1 &&
+                Object.prototype.toString.call(date) === "[object String]" &&
+                !/\d/.test(date)) {
+                mask = date;
+                date = undefined;
+            }
+
+            date = date || new Date();
+
+            if(!(date instanceof Date)) {
+                date = new Date(date);
+            }
+
+            if(isNaN(date)) {
+                throw new TypeError("Invalid date");
+            }
+
+            mask = String(dateFormats[locale].masks[mask] || mask || dateFormats[locale].masks["default"]);
+
+            // Allow setting the utc argument via the mask
+            if (mask.slice(0, 4) === "UTC:") {
+                mask = mask.slice(4);
+                utc = true;
+            }
+
+            var	_ = utc ? "getUTC" : "get",
+                d = date[_ + "Date"](),
+                D = date[_ + "Day"](),
+                m = date[_ + "Month"](),
+                y = date[_ + "FullYear"](),
+                H = date[_ + "Hours"](),
+                M = date[_ + "Minutes"](),
+                s = date[_ + "Seconds"](),
+                L = date[_ + "Milliseconds"](),
+                o = utc ? 0 : date.getTimezoneOffset(),
+                flags = {
+                    d:    d,
+                    dd:   pad(d),
+                    ddd:  dateFormats[locale].dayNames[D],
+                    dddd: dateFormats[locale].dayNames[D + 7],
+                    m:    m + 1,
+                    mm:   pad(m + 1),
+                    mmm:  dateFormats[locale].monthNames[m],
+                    mmmm: dateFormats[locale].monthNames[m + 12],
+                    yy:   String(y).slice(2),
+                    yyyy: y,
+                    h:    H % 12 || 12,
+                    hh:   pad(H % 12 || 12),
+                    H:    H,
+                    HH:   pad(H),
+                    M:    M,
+                    MM:   pad(M),
+                    s:    s,
+                    ss:   pad(s),
+                    l:    pad(L, 3),
+                    L:    pad(L > 99 ? Math.round(L / 10) : L),
+                    t:    H < 12 ? "a"  : "p",
+                    tt:   H < 12 ? "am" : "pm",
+                    T:    H < 12 ? "A"  : "P",
+                    TT:   H < 12 ? "AM" : "PM",
+                    Z:    utc ? "UTC" : (String(date).match(timezone) || [""]).pop().replace(timezoneClip, ""),
+                    o:    (o > 0 ? "-" : "+") + pad(Math.floor(Math.abs(o) / 60) * 100 + Math.abs(o) % 60, 4),
+                    S:    ["th", "st", "nd", "rd"][d % 10 > 3 ? 0 : (d % 100 - d % 10 !== 10) * d % 10]
+                };
+
+            return mask.replace(token, function ($0) {
+                return $0 in flags ? flags[$0] : $0.slice(1, $0.length - 1);
+            });
+        };
+    })();
+
+    return this;
+}
+
+Localize.source = Localize.toString();
+module.exports = Localize;
+
+},{"fs":"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/lib/_empty.js","path":"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/node_modules/path-browserify/index.js"}],"/home/jacob/Code/distributron/node_modules/react-router/modules/actions/LocationActions.js":[function(require,module,exports){
 /**
  * Actions that modify the URL.
  */
@@ -29345,6 +29810,8 @@ module.exports = require('./lib/React');
 
 });
 
+},{}],"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/lib/_empty.js":[function(require,module,exports){
+
 },{}],"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/node_modules/buffer/index.js":[function(require,module,exports){
 /*!
  * The buffer module from node.js, for the browser.
@@ -30943,7 +31410,235 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js":[function(require,module,exports){
+},{}],"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/node_modules/path-browserify/index.js":[function(require,module,exports){
+(function (process){
+// Copyright Joyent, Inc. and other Node contributors.
+//
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the
+// "Software"), to deal in the Software without restriction, including
+// without limitation the rights to use, copy, modify, merge, publish,
+// distribute, sublicense, and/or sell copies of the Software, and to permit
+// persons to whom the Software is furnished to do so, subject to the
+// following conditions:
+//
+// The above copyright notice and this permission notice shall be included
+// in all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+// OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+// MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN
+// NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+// DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+// OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
+// USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+// resolves . and .. elements in a path array with directory names there
+// must be no slashes, empty elements, or device names (c:\) in the array
+// (so also no leading and trailing slashes - it does not distinguish
+// relative and absolute paths)
+function normalizeArray(parts, allowAboveRoot) {
+  // if the path tries to go above the root, `up` ends up > 0
+  var up = 0;
+  for (var i = parts.length - 1; i >= 0; i--) {
+    var last = parts[i];
+    if (last === '.') {
+      parts.splice(i, 1);
+    } else if (last === '..') {
+      parts.splice(i, 1);
+      up++;
+    } else if (up) {
+      parts.splice(i, 1);
+      up--;
+    }
+  }
+
+  // if the path is allowed to go above the root, restore leading ..s
+  if (allowAboveRoot) {
+    for (; up--; up) {
+      parts.unshift('..');
+    }
+  }
+
+  return parts;
+}
+
+// Split a filename into [root, dir, basename, ext], unix version
+// 'root' is just a slash, or nothing.
+var splitPathRe =
+    /^(\/?|)([\s\S]*?)((?:\.{1,2}|[^\/]+?|)(\.[^.\/]*|))(?:[\/]*)$/;
+var splitPath = function(filename) {
+  return splitPathRe.exec(filename).slice(1);
+};
+
+// path.resolve([from ...], to)
+// posix version
+exports.resolve = function() {
+  var resolvedPath = '',
+      resolvedAbsolute = false;
+
+  for (var i = arguments.length - 1; i >= -1 && !resolvedAbsolute; i--) {
+    var path = (i >= 0) ? arguments[i] : process.cwd();
+
+    // Skip empty and invalid entries
+    if (typeof path !== 'string') {
+      throw new TypeError('Arguments to path.resolve must be strings');
+    } else if (!path) {
+      continue;
+    }
+
+    resolvedPath = path + '/' + resolvedPath;
+    resolvedAbsolute = path.charAt(0) === '/';
+  }
+
+  // At this point the path should be resolved to a full absolute path, but
+  // handle relative paths to be safe (might happen when process.cwd() fails)
+
+  // Normalize the path
+  resolvedPath = normalizeArray(filter(resolvedPath.split('/'), function(p) {
+    return !!p;
+  }), !resolvedAbsolute).join('/');
+
+  return ((resolvedAbsolute ? '/' : '') + resolvedPath) || '.';
+};
+
+// path.normalize(path)
+// posix version
+exports.normalize = function(path) {
+  var isAbsolute = exports.isAbsolute(path),
+      trailingSlash = substr(path, -1) === '/';
+
+  // Normalize the path
+  path = normalizeArray(filter(path.split('/'), function(p) {
+    return !!p;
+  }), !isAbsolute).join('/');
+
+  if (!path && !isAbsolute) {
+    path = '.';
+  }
+  if (path && trailingSlash) {
+    path += '/';
+  }
+
+  return (isAbsolute ? '/' : '') + path;
+};
+
+// posix version
+exports.isAbsolute = function(path) {
+  return path.charAt(0) === '/';
+};
+
+// posix version
+exports.join = function() {
+  var paths = Array.prototype.slice.call(arguments, 0);
+  return exports.normalize(filter(paths, function(p, index) {
+    if (typeof p !== 'string') {
+      throw new TypeError('Arguments to path.join must be strings');
+    }
+    return p;
+  }).join('/'));
+};
+
+
+// path.relative(from, to)
+// posix version
+exports.relative = function(from, to) {
+  from = exports.resolve(from).substr(1);
+  to = exports.resolve(to).substr(1);
+
+  function trim(arr) {
+    var start = 0;
+    for (; start < arr.length; start++) {
+      if (arr[start] !== '') break;
+    }
+
+    var end = arr.length - 1;
+    for (; end >= 0; end--) {
+      if (arr[end] !== '') break;
+    }
+
+    if (start > end) return [];
+    return arr.slice(start, end - start + 1);
+  }
+
+  var fromParts = trim(from.split('/'));
+  var toParts = trim(to.split('/'));
+
+  var length = Math.min(fromParts.length, toParts.length);
+  var samePartsLength = length;
+  for (var i = 0; i < length; i++) {
+    if (fromParts[i] !== toParts[i]) {
+      samePartsLength = i;
+      break;
+    }
+  }
+
+  var outputParts = [];
+  for (var i = samePartsLength; i < fromParts.length; i++) {
+    outputParts.push('..');
+  }
+
+  outputParts = outputParts.concat(toParts.slice(samePartsLength));
+
+  return outputParts.join('/');
+};
+
+exports.sep = '/';
+exports.delimiter = ':';
+
+exports.dirname = function(path) {
+  var result = splitPath(path),
+      root = result[0],
+      dir = result[1];
+
+  if (!root && !dir) {
+    // No dirname whatsoever
+    return '.';
+  }
+
+  if (dir) {
+    // It has a dirname, strip trailing slash
+    dir = dir.substr(0, dir.length - 1);
+  }
+
+  return root + dir;
+};
+
+
+exports.basename = function(path, ext) {
+  var f = splitPath(path)[2];
+  // TODO: make this comparison case-insensitive on windows?
+  if (ext && f.substr(-1 * ext.length) === ext) {
+    f = f.substr(0, f.length - ext.length);
+  }
+  return f;
+};
+
+
+exports.extname = function(path) {
+  return splitPath(path)[3];
+};
+
+function filter (xs, f) {
+    if (xs.filter) return xs.filter(f);
+    var res = [];
+    for (var i = 0; i < xs.length; i++) {
+        if (f(xs[i], i, xs)) res.push(xs[i]);
+    }
+    return res;
+}
+
+// String.prototype.substr - negative index don't work in IE8
+var substr = 'ab'.substr(-1) === 'b'
+    ? function (str, start, len) { return str.substr(start, len) }
+    : function (str, start, len) {
+        if (start < 0) start = str.length + start;
+        return str.substr(start, len);
+    }
+;
+
+}).call(this,require('_process'))
+},{"_process":"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js"}],"/home/jacob/Code/distributron/node_modules/watchify/node_modules/browserify/node_modules/process/browser.js":[function(require,module,exports){
 // shim for using process in browser
 
 var process = module.exports = {};

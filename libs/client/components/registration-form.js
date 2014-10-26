@@ -6,21 +6,22 @@ var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var users = require('../repositories/users');
 var validator = require('../../common/validator');
-var strings = require('../strings');
+var tr = require('../localization').translate;
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');
+var FieldsMatchRule = require('../forms/rules/fields-match');
 var usernameExistsCache = {};
 
 var fields = [
   {
     name: 'username',
     type: 'email',
-    label: 'Email address',
+    label: tr('Email address'),
     rules: [
-      new IsRequiredRule('username', strings.emailAddressRequiredValidationMessage),
-      new IsEmailRule('username', strings.emailAddressValidationMessage),
+      new IsRequiredRule('username', tr('You must enter an email address')),
+      new IsEmailRule('username', tr('Invalid email address')),
       {
-        message: 'There is already an account using this email address',
+        message: tr('There is already an account using this email address'),
         isValid: function() {
           if (!this.state.username) {
             return true;
@@ -46,36 +47,29 @@ var fields = [
   {
     name: 'password',
     type: 'password',
-    label: 'Password',
+    label: tr('Password'),
     rules: [
-      new IsRequiredRule('password', strings.passwordRequiredValidationMessage)
+      new IsRequiredRule('password', tr('You must enter a password'))
     ]
   },
   {
     name: 'confirm',
     type: 'password',
-    label: 'Re-enter password',
-    rules: [
-      {
-        message: 'Your passwords do not match',
-        isValid: function() { return this.state.password === this.state.confirm; }
-      }
-    ]
+    label: tr('Re-enter password'),
+    rules: [ new FieldsMatchRule('password', 'confirm', tr('Your passwords do not match')) ]
   },
   {
     name: 'question',
     type: 'text',
-    label: 'Password reset question',
-    rules: [
-      new IsRequiredRule('question', strings.securityQuestionRequiredValidationMessage)
-    ]
+    label: tr('Password reset question'),
+    rules: [ new IsRequiredRule('question', tr('You must enter a password reset question')) ]
   },
   {
     name: 'answer',
     type: 'password',
-    label: 'Password reset answer',
+    label: tr('Password reset answer'),
     rules: [
-      new IsRequiredRule('answer', strings.securityAnswerRequiredValidationMessage)
+      new IsRequiredRule('answer', tr('You must enter a password reset answer'))
     ]
   }
 ];
@@ -90,13 +84,13 @@ module.exports = React.createClass({
   },
   render: function() {
     return (this.state.submitted
-      ? React.DOM.p(null, require('../strings').registrationSuccessMessage)
+      ? React.DOM.p(null, tr('Your registration has been submitted. You should receive your activation email shortly.'))
       : React.DOM.div({ id: 'registration-form' },
         AjaxForm({
           fields: fields,
           url: '/api/users/',
           onAfterSubmit: this.handleSuccess
         }),
-        Link({ to: 'login' }, 'I already have an account')));
+        Link({ to: 'login' }, tr('I already have an account'))));
   }
 });

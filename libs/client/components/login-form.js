@@ -3,7 +3,7 @@
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
-var strings = require('../strings');
+var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'LoginForm',
@@ -14,18 +14,18 @@ module.exports = React.createClass({
           {
             name: 'username',
             type: 'email',
-            label: strings.loginFormUsernameLabel
+            label: tr('Email address')
           },
           {
             name: 'password',
             type: 'password',
-            label: strings.loginFormPasswordLabel,
+            label: tr('Password')
           }
         ]
       }),
       React.DOM.nav(null,
-        Link({ to: 'register' }, strings.loginFormRegistrationLinkText),
-        Link({ to: 'reset-password' }, strings.loginFormPasswordResetLinkText)
+        Link({ to: 'register' }, tr('Create a login')),
+        Link({ to: 'reset-password' }, tr('Reset my password'))
       ));
   }
 });

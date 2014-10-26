@@ -5,7 +5,7 @@ var React = require('react');
 var Field = require('./field');
 var reqwest = require('reqwest');
 var ValidationError = require('../errors/validation');
-var strings = require('../strings');
+var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'AjaxForm',
@@ -160,7 +160,9 @@ module.exports = React.createClass({
     return React.DOM.form({ onSubmit: this.handleSubmit },
       this.renderFields(validationMessages),
       this.state.hadSubmitError
-        ? React.DOM.div({ className: 'error' }, strings.unknownErrorMessage)
+        ? React.DOM.div(
+          { className: 'error' },
+          tr("We were unable to process your request. You may want to try again later."))
         : null,
       React.DOM.input(submitProps));
   }

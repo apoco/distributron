@@ -18,7 +18,8 @@
     "node-uuid": "~1.4.1",
     "bluebird": "~2.3.6",
     "buffertools": "~2.1.2",
-    "handlebars": "~2.0.0"
+    "handlebars": "~2.0.0",
+    "localize": "~0.4.7"
   },
   "devDependencies": {
     "mocha": "~1.21.5",

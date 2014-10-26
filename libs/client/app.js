@@ -14,7 +14,7 @@ React.renderComponent(
     Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
     Route({
       name: 'reset-password',
-      path: '/reset-password',
+      path: '/reset-password/?:username?',
       handler: require('./components/reset-password-form')
     }),
     DefaultRoute({ handler: LoginForm })),

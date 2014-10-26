@@ -120,7 +120,7 @@ describe('The Distributron', function() {
     });
 
     it('shows a password reset link', function() {
-      return select('a[href="/reset-password"]')
+      return select('a[href="/reset-password/"]')
         .then(function(link) {
           expect(link).to.exist;
         });
@@ -375,7 +375,7 @@ describe('The Distributron', function() {
       return registerNewUser()
         .then(function(result) {
           registrationData = result.inputValues;
-          return submitPasswordResetWithUserName(registrationData.username);
+          return submitPasswordResetUserName(registrationData.username);
         })
         .call('getAttribute', 'id')
         .then(function(id) {
@@ -394,7 +394,7 @@ describe('The Distributron', function() {
       return registerNewUser()
         .then(function(result) {
           user = result.inputValues;
-          return submitPasswordResetWithUserName(user.username);
+          return submitPasswordResetUserName(user.username);
         })
         .then(function() {
           return fillInput('input[name="answer"]', 'wrong answer');
@@ -416,11 +416,67 @@ describe('The Distributron', function() {
         .then(function(result) {
           user = result.inputValues;
 
-          mailServer.stop();
-          mailServer = startSMTPServer();
-
-          return submitPasswordResetWithUserName(user.username);
+          return submitPasswordReset(user);
         })
+        .then(function(resetLink) {
+          expect(resetLink).to.exist;
+        });
+    });
+
+    it('accepts security answers in a case-insensitive manner');
+
+    it('shows a login failure if the email reset link contains an old password');
+
+    it('prompts for a password change when following the email reset link', function() {
+      return registerNewUser()
+        .then(function(result) {
+          return submitPasswordReset(result.inputValues);
+        })
+        .then(function(resetLink) {
+          return goToUrl(resetLink.attribs.href);
+        })
+        .then(function() {
+          return waitForElement('form');
+        })
+        .then(function() {
+          return select(['input[name="password"]', 'input[name="confirm"]'])
+        })
+        .spread(function(password, confirm) {
+          expect(password).to.exist;
+          expect(confirm).to.exist;
+        });
+    });
+
+    it('validates that the new password is entered');
+
+    it('validates that the password confirmation matches');
+
+    it('changes the password to the entered value when completing a password reset');
+
+    function goToPasswordResetForm() {
+      return goToUrl('/reset-password');
+    }
+
+    function submitPasswordResetUserName(username) {
+      return goToPasswordResetForm()
+        .then(function() {
+          return fillInput('input[name="username"]', username);
+        })
+        .then(function() {
+          return select('input[type="submit"]');
+        })
+        .call('click')
+        .then(function() {
+          return waitForElement('input[name="answer"]');
+        });
+    }
+
+    function submitPasswordReset(user) {
+
+      mailServer.stop();
+      mailServer = startSMTPServer();
+
+      return submitPasswordResetUserName(user.username)
         .then(function() {
           return fillInput('input[name="answer"]', user.answer);
         })
@@ -437,34 +493,10 @@ describe('The Distributron', function() {
           var resetLinks = cheerio('a', email.html).filter(function(i, link) {
             return /^\/reset-password/.test(link.attribs.href);
           });
-          expect(resetLinks.length).to.be.greaterThan(0);
-        });
-    });
-
-    it('accepts security answers in a case-insensitive manner');
-
-    it('logs in the user and prompts for a password change when following the email reset link');
-
-    it('shows a login failure if the email reset link contains an old password');
-
-    function goToPasswordResetForm() {
-      return goToUrl('/reset-password');
-    }
-
-    function submitPasswordResetWithUserName(username) {
-      return goToPasswordResetForm()
-        .then(function() {
-          return fillInput('input[name="username"]', username);
-        })
-        .then(function() {
-          return select('input[type="submit"]');
-        })
-        .call('click')
-        .then(function() {
-          return waitForElement('input[name="answer"]');
+          return resetLinks[0];
         });
     }
-});
+  });
 
   describe('dashboard', function() {
     it('exists');
@@ -498,10 +530,6 @@ describe('The Distributron', function() {
     } else {
       return Promise.resolve(driver.findElement(byCss(selectors)));
     }
-  }
-
-  function selectMany(selector) {
-    return driver.findElements(byCss(selector));
   }
 
   function waitFor(fn, timeout) {

@@ -32,9 +32,7 @@ module.exports = React.createClass({
             name: 'username',
             type: 'email',
             label: tr('Email address'),
-            rules: [
-              new IsRequiredRule('username', tr('You must enter your email address'))
-            ]
+            rules: [ new IsRequiredRule('username', tr('You must enter your email address')) ]
           },
           {
             name: 'password',

@@ -4,7 +4,6 @@ var React = require('react');
 var LoginForm = require('./login-form');
 var reqwest = require('reqwest');
 var tr = require('../localization').translate;
-var strings = require('../strings');
 
 module.exports = React.createClass({
   displayName: 'ActivationPage',

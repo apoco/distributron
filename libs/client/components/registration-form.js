@@ -5,7 +5,6 @@ var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var users = require('../repositories/users');
-var validator = require('../../common/validator');
 var tr = require('../localization').translate;
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');

@@ -85,7 +85,18 @@ describe('The Distributron', function() {
         });
     });
 
-    it('validates that a username is entered');
+    it('validates that a username is entered', function() {
+      return populateForm({ password: 'some password' })
+        .then(function() {
+          return select('input[type="submit"]');
+        })
+        .then(function(submit) {
+          return submit.isEnabled();
+        })
+        .then(function(isEnabled) {
+          expect(isEnabled).to.be.false;
+        })
+    });
 
     it('validates that a password is entered');
 

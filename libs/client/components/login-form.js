@@ -4,6 +4,7 @@ var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var Navigation = require('react-router').Navigation;
+var IsRequiredRule = require('../forms/rules/required');
 var tr = require('../localization').translate;
 
 module.exports = React.createClass({
@@ -30,7 +31,10 @@ module.exports = React.createClass({
           {
             name: 'username',
             type: 'email',
-            label: tr('Email address')
+            label: tr('Email address'),
+            rules: [
+              new IsRequiredRule('username', tr('You must enter your email address'))
+            ]
           },
           {
             name: 'password',

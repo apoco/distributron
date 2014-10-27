@@ -314,6 +314,7 @@ var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var Navigation = require('react-router').Navigation;
+var IsRequiredRule = require('../forms/rules/required');
 var tr = require('../localization').translate;
 
 module.exports = React.createClass({
@@ -340,7 +341,10 @@ module.exports = React.createClass({
           {
             name: 'username',
             type: 'email',
-            label: tr('Email address')
+            label: tr('Email address'),
+            rules: [
+              new IsRequiredRule('username', tr('You must enter your email address'))
+            ]
           },
           {
             name: 'password',
@@ -356,7 +360,7 @@ module.exports = React.createClass({
   }
 });
 
-},{"../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/registration-form.js":[function(require,module,exports){
+},{"../forms/rules/required":"/home/jacob/Code/distributron/libs/client/forms/rules/required.js","../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","./ajax-form":"/home/jacob/Code/distributron/libs/client/components/ajax-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/registration-form.js":[function(require,module,exports){
 "use strict";
 
 var Promise = require('bluebird');
@@ -669,7 +673,7 @@ localizer.throwOnMissingTranslation(false);
 module.exports = localizer;
 
 },{"./translations.json":"/home/jacob/Code/distributron/libs/client/localization/translations.json","localize":"/home/jacob/Code/distributron/node_modules/localize/lib/localize.js"}],"/home/jacob/Code/distributron/libs/client/localization/translations.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={}
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={}
 
 },{}],"/home/jacob/Code/distributron/libs/client/repositories/users.js":[function(require,module,exports){
 'use strict';
@@ -686,7 +690,7 @@ function checkIfExists(username) {
 }
 
 },{"bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "emailAddressRequiredValidationMessage": "You must enter an email address",
   "emailAddressValidationMessage": "Invalid email address",
   "passwordRequiredValidationMessage": "You must enter a password",

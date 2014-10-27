@@ -86,9 +86,7 @@ module.exports = React.createClass({
     this.props.onChange && this.props.onChange({ field: field.name, value: normalizedValue });
   },
 
-  handleSubmit: function(e) {
-    e.preventDefault();
-
+  buildRequestOptions: function() {
     var url = (typeof(this.props.url) === 'function') ? this.props.url() : this.props.url;
     var method = this.props.method || 'post';
     var type = this.props.type || 'json';
@@ -114,22 +112,61 @@ module.exports = React.createClass({
       }
     }
 
+    return {
+      url: url,
+      method: method,
+      type: type,
+      contentType: contentType,
+      data: data
+    };
+  },
+
+  getErrorMessage: function(err) {
+    var errorMessage;
+    if (this.props.submitErrorMessage) {
+      errorMessage = this.props.submitErrorMessage;
+      if (typeof(errorMessage) === 'function') {
+        errorMessage = errorMessage(err);
+      }
+    }
+
+    if (!errorMessage) {
+      if (err && err.response) {
+        errorMessage = err.response;
+        if (errorMessage) {
+          if (typeof(errorMessage) === 'string') {
+            try {
+              errorMessage = JSON.parse(errorMessage);
+            } catch (e) {
+              // swallow
+            }
+          }
+
+          if (errorMessage.message) {
+            errorMessage = errorMessage.message;
+          }
+        }
+      }
+    }
+
+    errorMessage = errorMessage
+    || tr("We were unable to process your request. You may want to try again later.");
+    return errorMessage;
+  },
+
+  handleSubmit: function(e) {
+    e.preventDefault();
+
     this.setState({ isSubmitting: true, hadSubmitError: false });
 
     Promise
       .bind(this)
-      .return(reqwest({
-        url: url,
-        method: method,
-        type: type,
-        contentType: contentType,
-        data: data
-      }))
+      .return(reqwest(this.buildRequestOptions()))
       .then(function(res) {
         this.props.onAfterSubmit(res);
       })
-      .catch(function() {
-        this.setState({ hadSubmitError: true });
+      .catch(function(err) {
+        this.setState({ hadSubmitError: true, formErrorMessage: this.getErrorMessage(err) });
       })
       .finally(function() {
         this.setState({ isSubmitting: false });
@@ -169,9 +206,7 @@ module.exports = React.createClass({
     return React.DOM.form({ onSubmit: this.handleSubmit },
       this.renderFields(validationMessages),
       this.state.hadSubmitError
-        ? React.DOM.div(
-          { className: 'error' },
-          tr("We were unable to process your request. You may want to try again later."))
+        ? React.DOM.div({ className: 'error' }, this.state.formErrorMessage)
         : null,
       React.DOM.input(submitProps));
   }

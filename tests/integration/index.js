@@ -98,7 +98,7 @@ describe('The Distributron', function() {
         })
     });
 
-    it.only('validates that a password is entered', function() {
+    it('validates that a password is entered', function() {
       return populateForm({ username: 'some username' })
         .then(function() {
           return select('input[type="submit"]');
@@ -111,9 +111,19 @@ describe('The Distributron', function() {
         })
     });
 
-    it('shows an error if the username is invalid');
+    it('shows an error if the username is invalid', function() {
+      return submitForm({ username: 'some@unknown.email', password: 'password' })
+        .then(function() {
+          return waitForElement('form .error');
+        })
+        .then(function(elem) {
+          expect(elem).to.exist;
+        });
+    });
 
     it('shows an error if the password is invalid');
+
+    it('locks the account if too many failed logins are attempted');
 
     it('redirects to the dashboard if the username and password are valid');
 

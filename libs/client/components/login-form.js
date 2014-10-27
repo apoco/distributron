@@ -27,6 +27,7 @@ module.exports = React.createClass({
         url: '/api/tokens',
         onChange: this.handleFieldChange,
         onAfterSubmit: this.handleLogin,
+        submitErrorMessage: this.getErrorMessage,
         fields: [
           {
             name: 'username',

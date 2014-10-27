@@ -113,15 +113,20 @@ describe('The Distributron', function() {
 
     it('shows an error if the username is invalid', function() {
       return submitForm({ username: 'some@unknown.email', password: 'password' })
-        .then(function() {
-          return waitForElement('form .error');
-        })
-        .then(function(elem) {
-          expect(elem).to.exist;
-        });
+        .then(expectError);
     });
 
-    it('shows an error if the password is invalid');
+    it('shows an error if the password is invalid', function() {
+      return registerNewUser()
+        .bind({})
+        .then(function(result) {
+          return submitForm('/login', {
+            username: result.inputValues.username,
+            password: 'invalid password'
+          });
+        })
+        .then(expectError);
+    });
 
     it('locks the account if too many failed logins are attempted');
 
@@ -167,6 +172,13 @@ describe('The Distributron', function() {
           expect(link).to.exist;
         });
     });
+
+    function expectError() {
+      return waitForElement('form .error')
+        .then(function (elem) {
+          expect(elem).to.exist;
+        });
+    }
   });
 
   describe('logout action', function() {
@@ -668,7 +680,12 @@ describe('The Distributron', function() {
     return waitFor(function() { return element.isEnabled(); }, timeout || 2000);
   }
 
-  function populateForm(fieldValues) {
+  function populateForm(url, fieldValues) {
+    if (typeof(url) === 'string') {
+      return goToUrl(url).then(function() { return populateForm(fieldValues); });
+    }
+
+    fieldValues = url;
     return Object
       .keys(fieldValues)
       .reduce(function(prev, fieldName) {
@@ -678,8 +695,8 @@ describe('The Distributron', function() {
       }, Promise.resolve())
   }
 
-  function submitForm(fieldValues) {
-    return populateForm(fieldValues)
+  function submitForm(url, fieldValues) {
+    return populateForm(url, fieldValues)
       .then(function() {
         return click('input[type="submit"]');
       });

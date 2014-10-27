@@ -30,6 +30,10 @@ function handleAuthentication(req, res, next) {
       return this.user.isPasswordValid(req.body.password);
     })
     .then(function(isValid) {
+      if (!isValid) {
+        throw new AuthenticationError('Invalid username or password');
+      }
+
       var now = Date.now();
       return authTokens.createAsync({
         id: uuid.v4(),

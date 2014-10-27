@@ -37,7 +37,8 @@ module.exports = React.createClass({
           {
             name: 'password',
             type: 'password',
-            label: tr('Password')
+            label: tr('Password'),
+            rules: [ new IsRequiredRule('password', tr('You must enter your password')) ]
           }
         ]
       }),

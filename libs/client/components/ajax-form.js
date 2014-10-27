@@ -11,11 +11,19 @@ module.exports = React.createClass({
   displayName: 'AjaxForm',
 
   getInitialState: function() {
-    return {
+    var state = {
       submitted: false,
       isValidating: true,
       validatingPromise: this.validate()
     };
+
+    this.props.fields.forEach(function(field) {
+      if (field.defaultValue) {
+        state[field.name] = field.defaultValue;
+      }
+    });
+
+    return state;
   },
 
   validate: function() {
@@ -43,7 +51,7 @@ module.exports = React.createClass({
   validateField: function(field) {
     return Promise
       .bind(this)
-      .return(field.rules)
+      .return(field.rules || [])
       .map(function(rule) {
         return this.validateRule(field.name, rule);
       })
@@ -137,6 +145,7 @@ module.exports = React.createClass({
         name: field.name,
         label: field.label,
         type: field.type,
+        defaultValue: field.defaultValue,
         value: this.state[field.name],
         validationMessage: validationMessages[field.name],
         onChange: this.handleChange.bind(this, field)

@@ -7,9 +7,11 @@ var Route = Router.Route;
 var Routes = Router.Routes;
 var DefaultRoute = Router.DefaultRoute;
 var LoginForm = require('./components/login-form');
+var Dashboard = require('./components/dashboard');
 
 React.renderComponent(
   Routes({ location: 'history' },
+
     Route({ name: 'login', path: '/login', handler: LoginForm }),
     Route({ name: 'register', path: '/register', handler: require('./components/registration-form') }),
     Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
@@ -18,10 +20,14 @@ React.renderComponent(
       path: '/reset-password/?:username?',
       handler: require('./components/reset-password-form')
     }),
-    DefaultRoute({ handler: LoginForm })),
-  document.querySelector('body'));
 
-},{"./components/activation-page":"/home/jacob/Code/distributron/libs/client/components/activation-page.js","./components/login-form":"/home/jacob/Code/distributron/libs/client/components/login-form.js","./components/registration-form":"/home/jacob/Code/distributron/libs/client/components/registration-form.js","./components/reset-password-form":"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/activation-page.js":[function(require,module,exports){
+    Route({ name: 'dashboard', path: '/', handler: Dashboard }),
+
+    DefaultRoute({ handler: Dashboard })),
+  document.querySelector('body')
+);
+
+},{"./components/activation-page":"/home/jacob/Code/distributron/libs/client/components/activation-page.js","./components/dashboard":"/home/jacob/Code/distributron/libs/client/components/dashboard.js","./components/login-form":"/home/jacob/Code/distributron/libs/client/components/login-form.js","./components/registration-form":"/home/jacob/Code/distributron/libs/client/components/registration-form.js","./components/reset-password-form":"/home/jacob/Code/distributron/libs/client/components/reset-password-form.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","react-router":"/home/jacob/Code/distributron/node_modules/react-router/modules/index.js"}],"/home/jacob/Code/distributron/libs/client/components/activation-page.js":[function(require,module,exports){
 'use strict';
 
 var React = require('react');
@@ -96,11 +102,19 @@ module.exports = React.createClass({
   displayName: 'AjaxForm',
 
   getInitialState: function() {
-    return {
+    var state = {
       submitted: false,
       isValidating: true,
       validatingPromise: this.validate()
     };
+
+    this.props.fields.forEach(function(field) {
+      if (field.defaultValue) {
+        state[field.name] = field.defaultValue;
+      }
+    });
+
+    return state;
   },
 
   validate: function() {
@@ -128,7 +142,7 @@ module.exports = React.createClass({
   validateField: function(field) {
     return Promise
       .bind(this)
-      .return(field.rules)
+      .return(field.rules || [])
       .map(function(rule) {
         return this.validateRule(field.name, rule);
       })
@@ -222,6 +236,7 @@ module.exports = React.createClass({
         name: field.name,
         label: field.label,
         type: field.type,
+        defaultValue: field.defaultValue,
         value: this.state[field.name],
         validationMessage: validationMessages[field.name],
         onChange: this.handleChange.bind(this, field)
@@ -253,7 +268,19 @@ module.exports = React.createClass({
   }
 });
 
-},{"../errors/validation":"/home/jacob/Code/distributron/libs/client/errors/validation.js","../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","./field":"/home/jacob/Code/distributron/libs/client/components/field.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/field.js":[function(require,module,exports){
+},{"../errors/validation":"/home/jacob/Code/distributron/libs/client/errors/validation.js","../localization":"/home/jacob/Code/distributron/libs/client/localization/index.js","./field":"/home/jacob/Code/distributron/libs/client/components/field.js","bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","react":"/home/jacob/Code/distributron/node_modules/react/react.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/components/dashboard.js":[function(require,module,exports){
+'use strict';
+
+var React = require('react');
+
+module.exports = React.createClass({
+  displayName: 'Dashboard',
+  render: function() {
+    return React.DOM.div(null);
+  }
+});
+
+},{"react":"/home/jacob/Code/distributron/node_modules/react/react.js"}],"/home/jacob/Code/distributron/libs/client/components/field.js":[function(require,module,exports){
 "use strict";
 
 var React = require('react');
@@ -286,13 +313,29 @@ module.exports = React.createClass({
 var React = require('react');
 var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
+var Navigation = require('react-router').Navigation;
 var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'LoginForm',
+  mixins: [ Navigation ],
+
+  handleFieldChange: function(change) {
+    if (change.field === 'username') {
+      this.setState({ username: change.value });
+    }
+  },
+
+  handleLogin: function(token) {
+    this.transitionTo('dashboard');
+  },
+
   render: function() {
     return React.DOM.div(null,
       AjaxForm({
+        url: '/api/tokens',
+        onChange: this.handleFieldChange,
+        onAfterSubmit: this.handleLogin,
         fields: [
           {
             name: 'username',
@@ -447,11 +490,17 @@ module.exports = React.createClass({
   getSecurityQuestionUrl: function() {
     return '/api/users/' + encodeURIComponent(this.state.username) + '/question';
   },
+  getChangePasswordUrl: function() {
+    return '/api/users/' + encodeURIComponent(this.props.params.username) + '/password';
+  },
   handleSecurityQuestion: function(question) {
     this.setState({ hasSubmittedUsername: true, securityQuestion: question });
   },
   handlePasswordReset: function() {
     this.setState({ hasResetPassword: true });
+  },
+  handleChangedPassword: function() {
+    this.setState({ hasChangedPassword: true });
   },
   renderStep1: function() {
     return [
@@ -525,15 +574,20 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: tr('Submit'),
-        url: this.getSecurityQuestionUrl,
-        onAfterSubmit: this.handlePasswordReset
+        url: this.getChangePasswordUrl,
+        method: 'put',
+        onAfterSubmit: this.handleChangedPassword
       })
     ];
   },
   render: function() {
     var formContent;
     if (this.props.params.username) {
-      formContent = this.renderNewPasswordForm();
+      if (this.state.hasChangedPassword) {
+        formContent = React.DOM.p(null, tr('Your password has been changed.'));
+      } else {
+        formContent = this.renderNewPasswordForm();
+      }
     } else if (!this.state.hasSubmittedUsername) {
       formContent = this.renderStep1();
     } else if (!this.state.hasResetPassword) {
@@ -615,7 +669,7 @@ localizer.throwOnMissingTranslation(false);
 module.exports = localizer;
 
 },{"./translations.json":"/home/jacob/Code/distributron/libs/client/localization/translations.json","localize":"/home/jacob/Code/distributron/node_modules/localize/lib/localize.js"}],"/home/jacob/Code/distributron/libs/client/localization/translations.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={}
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={}
 
 },{}],"/home/jacob/Code/distributron/libs/client/repositories/users.js":[function(require,module,exports){
 'use strict';
@@ -632,7 +686,7 @@ function checkIfExists(username) {
 }
 
 },{"bluebird":"/home/jacob/Code/distributron/node_modules/bluebird/js/main/bluebird.js","reqwest":"/home/jacob/Code/distributron/node_modules/reqwest/reqwest.js"}],"/home/jacob/Code/distributron/libs/client/strings/index.json":[function(require,module,exports){
-module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
+module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports=module.exports={
   "emailAddressRequiredValidationMessage": "You must enter an email address",
   "emailAddressValidationMessage": "Invalid email address",
   "passwordRequiredValidationMessage": "You must enter a password",

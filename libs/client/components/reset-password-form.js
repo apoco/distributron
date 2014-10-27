@@ -33,11 +33,17 @@ module.exports = React.createClass({
   getSecurityQuestionUrl: function() {
     return '/api/users/' + encodeURIComponent(this.state.username) + '/question';
   },
+  getChangePasswordUrl: function() {
+    return '/api/users/' + encodeURIComponent(this.props.params.username) + '/password';
+  },
   handleSecurityQuestion: function(question) {
     this.setState({ hasSubmittedUsername: true, securityQuestion: question });
   },
   handlePasswordReset: function() {
     this.setState({ hasResetPassword: true });
+  },
+  handleChangedPassword: function() {
+    this.setState({ hasChangedPassword: true });
   },
   renderStep1: function() {
     return [
@@ -111,15 +117,20 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: tr('Submit'),
-        url: this.getSecurityQuestionUrl,
-        onAfterSubmit: this.handlePasswordReset
+        url: this.getChangePasswordUrl,
+        method: 'put',
+        onAfterSubmit: this.handleChangedPassword
       })
     ];
   },
   render: function() {
     var formContent;
     if (this.props.params.username) {
-      formContent = this.renderNewPasswordForm();
+      if (this.state.hasChangedPassword) {
+        formContent = React.DOM.p(null, tr('Your password has been changed.'));
+      } else {
+        formContent = this.renderNewPasswordForm();
+      }
     } else if (!this.state.hasSubmittedUsername) {
       formContent = this.renderStep1();
     } else if (!this.state.hasResetPassword) {

@@ -4,6 +4,9 @@ module.exports = {
   create: create
 };
 
+var Promise = require('bluebird');
+var cryptoUtils = require('../utils/crypto');
+
 function create(db) {
   return db.define('users', {
     id: { type: 'text', size: 36, required: true, key: true },
@@ -18,6 +21,18 @@ function create(db) {
     createdTimestamp: { type: 'date', time: true, required: true },
     activatedTimestamp: { type: 'date', time: true }
   }, {
-
+    methods: {
+      isPasswordValid: function(password) {
+        return cryptoUtils.validateHashedValue(this.passwordSalt, password, this.passwordHash);
+      },
+      setPassword: function(password) {
+        return cryptoUtils.getSaltedHash(this.passwordSalt, password)
+          .bind(this)
+          .then(function(hash) {
+            this.passwordHash = hash;
+            return Promise.promisify(this.save, this).call();
+          });
+      }
+    }
   });
 }

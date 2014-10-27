@@ -35,9 +35,6 @@ function handleUsersPost(req, res, next) {
     .then(function() {
       res.status(204).end();
     })
-    .catch(UserAlreadyActivatedError, function(err) {
-      res.status(422).send(err.message);
-    })
     .catch(next);
 }
 

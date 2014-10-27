@@ -2,4 +2,4 @@
 
 var TypedError = require('./typed');
 
-module.exports = new TypedError('UserAlreadyActivatedError');
+module.exports = new TypedError('UserAlreadyActivatedError', 422);

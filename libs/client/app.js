@@ -6,9 +6,11 @@ var Route = Router.Route;
 var Routes = Router.Routes;
 var DefaultRoute = Router.DefaultRoute;
 var LoginForm = require('./components/login-form');
+var Dashboard = require('./components/dashboard');
 
 React.renderComponent(
   Routes({ location: 'history' },
+
     Route({ name: 'login', path: '/login', handler: LoginForm }),
     Route({ name: 'register', path: '/register', handler: require('./components/registration-form') }),
     Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
@@ -17,5 +19,9 @@ React.renderComponent(
       path: '/reset-password/?:username?',
       handler: require('./components/reset-password-form')
     }),
-    DefaultRoute({ handler: LoginForm })),
-  document.querySelector('body'));
+
+    Route({ name: 'dashboard', path: '/', handler: Dashboard }),
+
+    DefaultRoute({ handler: Dashboard })),
+  document.querySelector('body')
+);

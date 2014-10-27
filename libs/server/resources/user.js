@@ -6,17 +6,18 @@ module.exports = {
     app.get('/api/users/:username', handleGetUserRequest);
     app.get('/api/users/:username/question', handleGetUserSecurityQuestion);
     app.post('/api/users/:username/question', handlePostSecurityAnswer);
+    app.put('/api/users/:username/password', handlePasswordChange);
   }
 };
 
 var Promise = require('bluebird');
-var bufferTools = require('buffertools');
 var crypto = Promise.promisifyAll(require('crypto'));
 var config = require('../config').settings;
 var validator = require('../../common/validator');
 var status = require('../enums/user-status');
 var cryptoUtils = require('../utils/crypto');
 var emailUtils = require('../utils/email');
+var urlUtils = require('../utils/url');
 var users = Promise.promisifyAll(require('../data').repositories.users);
 var NotFoundError = require('../errors/not-found');
 var AuthenticationError = require('../errors/authentication');
@@ -26,9 +27,6 @@ function handleUserHeadRequest(req, res, next) {
     .then(function() {
       res.status(200).end();
     })
-    .catch(NotFoundError, function() {
-      res.status(404).end();
-    })
     .catch(next);
 }
 
@@ -36,9 +34,6 @@ function handleGetUserRequest(req, res, next) {
   getUserByUsername(req.params.username, { only: [ 'username', 'status' ] })
     .then(function(user) {
       res.status(200).json(user);
-    })
-    .catch(NotFoundError, function() {
-      res.status(404).end();
     })
     .catch(next);
 }
@@ -48,47 +43,57 @@ function handleGetUserSecurityQuestion(req, res, next) {
     .then(function(user) {
       res.json(user.securityQuestion);
     })
-    .catch(NotFoundError, function() {
-      res.status(404).end();
-    })
     .catch(next);
 }
 
 function handlePostSecurityAnswer(req, res, next) {
-  var user;
+  var user, password;
   getUserByUsername(req.params.username)
     .then(function(dbUser) {
       user = dbUser;
-      return cryptoUtils.getSaltedHash(user.securityAnswerSalt, req.body.answer);
+      return cryptoUtils.validateHashedValue(
+        user.securityAnswerSalt,
+        req.body.answer,
+        user.securityAnswerHash);
     })
-    .then(function(hash) {
-      if (bufferTools.compare(hash, user.securityAnswerHash) !== 0) {
+    .then(function(isValid) {
+      if (!isValid) {
         throw new AuthenticationError('Invalid answer');
       }
-
       return crypto.randomBytesAsync(32);
     })
     .then(function(buffer) {
-      var password = buffer.toString('base64');
-      var resetUrl =
-        '/reset-password/'
-        + encodeURIComponent(user.username)
-        + '?password='
-        + encodeURIComponent(password);
-      return emailUtils.send(
-        user.username,
-        'Password Reset',
-        'password-reset',
-        { password: password, passwordResetUrl: resetUrl });
+      password = buffer.toString('base64');
+      return user.setPassword(password);
+    })
+    .then(function() {
+      var resetUrl = urlUtils.format(
+        '/reset-password/{username}?password={password}',
+        { username: user.username, password: password });
+      var templateData = { password: password, passwordResetUrl: resetUrl };
+      return emailUtils.send(user.username, 'Password Reset', 'password-reset', templateData);
     })
     .then(function() {
       res.status(204).end();
     })
-    .catch(NotFoundError, function() {
-      res.status(404).end();
+    .catch(next);
+}
+
+function handlePasswordChange(req, res, next) {
+  var user;
+  getUserByUsername(req.params.username)
+    .then(function(theUser) {
+      user = theUser;
+      return user.isPasswordValid(req.body.old);
     })
-    .catch(AuthenticationError, function() {
-      res.status(401).end();
+    .then(function(isValid) {
+      if (!isValid) {
+        throw new AuthenticationError('Invalid password');
+      }
+      return user.setPassword(req.body.password);
+    })
+    .then(function() {
+      res.status(204).end();
     })
     .catch(next);
 }
@@ -100,7 +105,7 @@ function getUserByUsername(username, options) {
       if (user && user.status !== status.pending) {
         return user;
       } else {
-        throw new NotFoundError();
+        throw new NotFoundError('Username not found');
       }
     });
 }

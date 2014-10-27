@@ -85,6 +85,16 @@ describe('The Distributron', function() {
         });
     });
 
+    it('validates that a username is entered');
+
+    it('validates that a password is entered');
+
+    it('shows an error if the username is invalid');
+
+    it('shows an error if the password is invalid');
+
+    it('redirects to the dashboard if the username and password are valid');
+
     describe('register link', function() {
       it('is displayed', function() {
         return getRegistrationLink()
@@ -125,6 +135,11 @@ describe('The Distributron', function() {
           expect(link).to.exist;
         });
     });
+  });
+
+  describe('logout action', function() {
+    it('takes the user to the login form');
+    it('clears the authorization cookie');
   });
 
   describe('registration form', function() {
@@ -357,7 +372,7 @@ describe('The Distributron', function() {
     });
 
     it('validates that the username exists', function() {
-      return fillInput('input[name="username"]', 'some.unknown@email.com')
+      return populateForm({ username: 'some.unknown@email.com'})
         .then(function() {
           return select(['input[type="submit"]', 'form .error']);
         })
@@ -397,10 +412,7 @@ describe('The Distributron', function() {
           return submitPasswordResetUserName(user.username);
         })
         .then(function() {
-          return fillInput('input[name="answer"]', 'wrong answer');
-        })
-        .then(function() {
-          return click('input[type="submit"]');
+          return submitForm({ answer: 'wrong answer'});
         })
         .then(function() {
           return waitForElement('form .error');
@@ -428,22 +440,18 @@ describe('The Distributron', function() {
     it('shows a login failure if the email reset link contains an old password');
 
     it('prompts for a password change when following the email reset link', function() {
-      return registerNewUser()
-        .then(function(result) {
-          return submitPasswordReset(result.inputValues);
-        })
-        .then(function(resetLink) {
-          return goToUrl(resetLink.attribs.href);
-        })
+      return resetPasswordAndFollowLink()
         .then(function() {
-          return waitForElement('form');
+          return select(['input[name="old"]', 'input[name="password"]', 'input[name="confirm"]'])
         })
-        .then(function() {
-          return select(['input[name="password"]', 'input[name="confirm"]'])
-        })
-        .spread(function(password, confirm) {
+        .spread(function(old, password, confirm) {
+          expect(old).to.exist;
           expect(password).to.exist;
           expect(confirm).to.exist;
+          return old.getAttribute('value');
+        })
+        .then(function(oldPassword) {
+          expect(oldPassword).to.exist;
         });
     });
 
@@ -451,7 +459,28 @@ describe('The Distributron', function() {
 
     it('validates that the password confirmation matches');
 
-    it('changes the password to the entered value when completing a password reset');
+    it('changes the password to the entered value when completing a password reset', function() {
+      var user;
+      return resetPasswordAndFollowLink()
+        .then(function(theUser) {
+          user = theUser;
+          return submitForm({ password: 'n00Passw*rd', confirm: 'n00Passw*rd' });
+        })
+        .then(function() {
+          return waitUntilElementIsGone('form');
+        })
+        .then(function() {
+          return goToUrl('/login');
+        })
+        .then(function() {
+          return submitForm({ username: user.username, password: 'n00Passw*rd' });
+        })
+        .then(function() {
+          return waitUntilElementIsGone('form');
+        });
+    });
+
+    it('shows a link to the dashboard in the password change message');
 
     function goToPasswordResetForm() {
       return goToUrl('/reset-password');
@@ -460,12 +489,8 @@ describe('The Distributron', function() {
     function submitPasswordResetUserName(username) {
       return goToPasswordResetForm()
         .then(function() {
-          return fillInput('input[name="username"]', username);
+          return submitForm({ username: username });
         })
-        .then(function() {
-          return select('input[type="submit"]');
-        })
-        .call('click')
         .then(function() {
           return waitForElement('input[name="answer"]');
         });
@@ -478,10 +503,7 @@ describe('The Distributron', function() {
 
       return submitPasswordResetUserName(user.username)
         .then(function() {
-          return fillInput('input[name="answer"]', user.answer);
-        })
-        .then(function() {
-          return click('input[type="submit"]');
+          return submitForm({ answer: user.answer });
         })
         .then(function() {
           return waitUntilElementIsGone('form');
@@ -494,6 +516,24 @@ describe('The Distributron', function() {
             return /^\/reset-password/.test(link.attribs.href);
           });
           return resetLinks[0];
+        });
+    }
+
+    function resetPasswordAndFollowLink() {
+      var user;
+      return registerNewUser()
+        .then(function(result) {
+          user = result.inputValues;
+          return submitPasswordReset(user);
+        })
+        .then(function(resetLink) {
+          return goToUrl(resetLink.attribs.href);
+        })
+        .then(function() {
+          return waitForElement('form');
+        })
+        .then(function() {
+          return user;
         });
     }
   });
@@ -594,6 +634,23 @@ describe('The Distributron', function() {
 
   function waitUntilEnabled(element, timeout) {
     return waitFor(function() { return element.isEnabled(); }, timeout || 2000);
+  }
+
+  function populateForm(fieldValues) {
+    return Object
+      .keys(fieldValues)
+      .reduce(function(prev, fieldName) {
+        return prev.then(function() {
+          return fillInput('input[name="' + fieldName + '"]', fieldValues[fieldName]);
+        });
+      }, Promise.resolve())
+  }
+
+  function submitForm(fieldValues) {
+    return populateForm(fieldValues)
+      .then(function() {
+        return click('input[type="submit"]');
+      });
   }
 
   function goToRegistrationForm() {

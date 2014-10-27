@@ -2,4 +2,4 @@
 
 var TypedError = require('./typed');
 
-module.exports = new TypedError('AuthenticationError');
+module.exports = new TypedError('AuthenticationError', 401);

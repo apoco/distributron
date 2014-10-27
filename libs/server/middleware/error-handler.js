@@ -3,8 +3,9 @@
 module.exports = handleError;
 
 function handleError(err, req, res, next) {
-  console.error(err.stack || err);
-  res
-    .status(err.status || 500)
-    .json({ message: err.message, stack: err.stack });
+  var status = err.status || 500;
+  res.status(status).json({ message: err.message, stack: err.stack });
+  if (status >= 500) {
+    console.error(err.stack || err);
+  }
 }

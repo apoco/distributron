@@ -35,18 +35,7 @@ function initConfig() {
   var config = require('./config');
   var args = require('yargs').argv;
   var configPath = args._[0];
-
-  config.settings = configPath
-    ? require(path.relative(__dirname, path.resolve(process.cwd(), configPath)))
-    : {};
-  config.settings.port = args.port || config.settings.port || 8000;
-  config.settings.database = args.database || config.settings.database;
-  config.settings.init = args.init;
-
-  if (!config.settings.database) {
-    throw new Error('Missing database argument or config setting');
-  }
-
+  config.initialize(args, configPath);
   return config.settings;
 }
 

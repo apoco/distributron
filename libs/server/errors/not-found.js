@@ -2,4 +2,4 @@
 
 var TypedError = require('./typed');
 
-module.exports = new TypedError('NotFoundError');
+module.exports = new TypedError('NotFoundError', 404);

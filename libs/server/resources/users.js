@@ -71,7 +71,7 @@ function generateUser(req) {
     securityAnswerSalt: answerSalt,
     securityAnswerHash: answerHash,
     activationCode: getRandomBytes().call('toString', 'hex'),
-    createdTimestamp: Date.now()
+    createdTimestamp: new Date()
   });
 }
 

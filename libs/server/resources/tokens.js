@@ -15,31 +15,34 @@ var status = require('../enums/user-status');
 var config = require('../config').settings;
 
 function handleAuthentication(req, res, next) {
+  var tr = require('../localization').getTranslator();
+  var authErrorMessage = tr('Invalid username or password');
+
   users
-    .findAsync(
-      { username: req.body.username, status: status.active },
-      { only: ['id', 'passwordSalt', 'passwordHash'] })
+    .findAsync({ username: req.body.username, status: status.active })
     .get(0)
     .bind({})
     .then(function(user) {
       if (!user) {
-        throw new AuthenticationError('Invalid username or password');
+        throw new AuthenticationError(authErrorMessage);
+      } else if (user.isLockedOut()) {
+        throw new AuthenticationError(tr('Your account has been temporarily locked because of too many login failures'));
       }
 
       this.user = user;
-      return this.user.isPasswordValid(req.body.password);
+      return this.user.validatePassword(req.body.password);
     })
     .then(function(isValid) {
       if (!isValid) {
-        throw new AuthenticationError('Invalid username or password');
+        throw new AuthenticationError(authErrorMessage);
       }
 
-      var now = Date.now();
+      var now = new Date();
       return authTokens.createAsync({
         id: uuid.v4(),
         userId: this.user.id,
         createdTimestamp: now,
-        expirationTimestamp: now + config.authTokenExpirationInSeconds
+        expirationTimestamp: new Date(now.getTime() + config.authTokenExpirationInSeconds)
       });
     })
     .then(function(token) {

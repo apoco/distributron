@@ -84,7 +84,7 @@ function handlePasswordChange(req, res, next) {
   getUserByUsername(req.params.username)
     .then(function(theUser) {
       user = theUser;
-      return user.isPasswordValid(req.body.old);
+      return user.validatePassword(req.body.old);
     })
     .then(function(isValid) {
       if (!isValid) {

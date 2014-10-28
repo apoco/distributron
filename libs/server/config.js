@@ -8,14 +8,24 @@ function AppConfiguration() {
 
 var path = require('path');
 
+var defaults = {
+  port: 8000,
+  database: null,
+  init: false,
+  authTokenExpirationInSeconds: 30 * 24 * 60 * 60,
+  lockoutLoginAttempts: 10,
+  lockoutDurationInSeconds: 5 * 60 * 60
+};
+
 AppConfiguration.prototype.initialize = function(args, configPath) {
   this.settings = configPath
     ? require(path.relative(__dirname, path.resolve(process.cwd(), configPath)))
     : {};
-  this.settings.port = args.port || this.settings.port || 8000;
-  this.settings.database = args.database || this.settings.database;
-  this.settings.init = args.init;
-  this.settings.authTokenExpirationInSeconds = this.settings.authTokenExpirationInSeconds || 30 * 24 * 60 * 60;
+  Object
+    .keys(defaults)
+    .forEach(function(setting) {
+      this.settings[setting] = args[setting] || this.settings[setting] || defaults[setting]
+    }.bind(this));
 
   if (!this.settings.database) {
     throw new Error('Missing database argument or config setting');

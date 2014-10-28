@@ -27,7 +27,7 @@ function handleActivationPost(req, res, next) {
       }
 
       if (user.status === status.pending) {
-        user.activatedTimestamp = Date.now();
+        user.activatedTimestamp = new Date();
         user.status = status.active;
         return Promise.promisify(user.save, user).call();
       }

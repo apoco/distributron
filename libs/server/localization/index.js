@@ -1,7 +1,8 @@
 'use strict';
 
 module.exports = {
-  getLocalizer: getLocalizer
+  getLocalizer: getLocalizer,
+  getTranslator: getTranslator
 };
 
 var Localizer = require('localize');
@@ -13,8 +14,15 @@ function getLocalizer() {
   var locale = require('continuation-local-storage')
     .getNamespace('session')
     .get('locale');
-  localizer.setLocale(locale);
+  if (locale) {
+    localizer.setLocale(locale);
+  }
   localizer.throwOnMissingTranslation(false);
 
   return localizer;
+}
+
+function getTranslator() {
+  var localizer = getLocalizer();
+  return localizer.translate.bind(localizer);
 }

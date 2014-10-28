@@ -35,7 +35,7 @@ describe('The Distributron', function() {
           var startupScript = path.resolve(__dirname, '../../index.js');
           appProcess = childProcess.fork(
             startupScript,
-            ['config.json', '--database=sqlite://' + dbFile, '--init=true'],
+            ['config.json', '--database=sqlite://' + dbFile, '--init=true', '--lockoutLoginAttempts=3'],
             {silent: true, cwd: __dirname});
           appProcess.on('error', function(err) {
             console.error(err.stack);
@@ -128,7 +128,28 @@ describe('The Distributron', function() {
         .then(expectError);
     });
 
-    it('locks the account if too many failed logins are attempted');
+    it('locks the account if too many failed logins are attempted', function() {
+      return registerNewUser()
+        .bind({})
+        .then(function(result) {
+          this.user = result.inputValues;
+          return submitInvalidLogin(this.user.username);
+        })
+        .then(function() {
+          return submitInvalidLogin(this.user.username);
+        })
+        .then(function() {
+          return submitInvalidLogin(this.user.username);
+        })
+        .then(function() {
+          return submitForm('/login', { username: this.user.username, password: this.user.password });
+        })
+        .then(expectError);
+    });
+
+    it('resets the lockout count on a successful login');
+
+    it('resets the lockout status of an account after a period of time');
 
     it('redirects to the dashboard if the username and password are valid');
 
@@ -172,6 +193,13 @@ describe('The Distributron', function() {
           expect(link).to.exist;
         });
     });
+
+    function submitInvalidLogin(username) {
+      return submitForm('/login', { username: username, password: 'invalid' })
+        .then(function() {
+          return waitForElement('form .error');
+        });
+    }
 
     function expectError() {
       return waitForElement('form .error')

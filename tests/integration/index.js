@@ -117,11 +117,10 @@ describe('The Distributron', function() {
     });
 
     it('shows an error if the password is invalid', function() {
-      return registerNewUser()
-        .bind({})
-        .then(function(result) {
+      return getNewUser()
+        .then(function(user) {
           return submitForm('/login', {
-            username: result.inputValues.username,
+            username: user.username,
             password: 'invalid password'
           });
         })
@@ -129,10 +128,10 @@ describe('The Distributron', function() {
     });
 
     it('locks the account if too many failed logins are attempted', function() {
-      return registerNewUser()
+      return getNewUser()
         .bind({})
-        .then(function(result) {
-          this.user = result.inputValues;
+        .then(function(user) {
+          this.user = user;
         })
         .repeat(3, function() {
           return submitInvalidLogin(this.user.username);
@@ -144,10 +143,10 @@ describe('The Distributron', function() {
     });
 
     it('resets the lockout count on a successful login', function() {
-      return registerNewUser()
+      return getNewUser()
         .bind({})
-        .then(function(result) {
-          this.user = result.inputValues;
+        .then(function(user) {
+          this.user = user;
         })
         .repeat(2, function() {
           return submitInvalidLogin(this.user.username);
@@ -167,10 +166,10 @@ describe('The Distributron', function() {
     });
 
     it('resets the lockout status of an account after a period of time', function() {
-      return registerNewUser()
+      return getNewUser()
         .bind({})
-        .then(function(result) {
-          this.user = result.inputValues;
+        .then(function(user) {
+          this.user = user;
         })
         .repeat(3, function() {
           return submitInvalidLogin(this.user.username);
@@ -184,7 +183,15 @@ describe('The Distributron', function() {
         });
     });
 
-    it('redirects to the dashboard if the username and password are valid');
+    it('redirects to the dashboard if the username and password are valid', function() {
+      return getNewUser()
+        .then(function(user) {
+          return submitForm('/login', { username: user.username, password: user.password });
+        })
+        .then(function() {
+          return waitForElement('#dashboard');
+        });
+    });
 
     describe('register link', function() {
       it('is displayed', function() {
@@ -290,11 +297,9 @@ describe('The Distributron', function() {
       });
 
       it('ensures that the username is not already in use', function() {
-        var username;
-        return registerNewUser()
-          .then(function(result) {
-            username = result.inputValues.username;
-            return populateRegistrationForm(getRandomRegistrationData(username));
+        return getNewUser()
+          .then(function(user) {
+            return populateRegistrationForm(getRandomRegistrationData(user.username));
           })
           .then(function(newInputs) {
             inputs = newInputs;
@@ -510,10 +515,8 @@ describe('The Distributron', function() {
     it('has a reset button to return to the username entry');
 
     it('validates that the security answer is correct', function() {
-      var user;
-      return registerNewUser()
-        .then(function(result) {
-          user = result.inputValues;
+      return getNewUser()
+        .then(function(user) {
           return submitPasswordResetUserName(user.username);
         })
         .then(function() {
@@ -528,11 +531,8 @@ describe('The Distributron', function() {
     });
 
     it('sends a password reset email if the security answer is correct', function() {
-      var user;
-      return registerNewUser()
-        .then(function(result) {
-          user = result.inputValues;
-
+      return getNewUser()
+        .then(function(user) {
           return submitPasswordReset(user);
         })
         .then(function(resetLink) {
@@ -625,10 +625,10 @@ describe('The Distributron', function() {
     }
 
     function resetPasswordAndFollowLink() {
-      var user;
-      return registerNewUser()
-        .then(function(result) {
-          user = result.inputValues;
+      return getNewUser()
+        .bind({})
+        .then(function(user) {
+          this.user = user;
           return submitPasswordReset(user);
         })
         .then(function(resetLink) {
@@ -638,7 +638,7 @@ describe('The Distributron', function() {
           return waitForElement('form');
         })
         .then(function() {
-          return user;
+          return this.user;
         });
     }
   });
@@ -849,6 +849,10 @@ describe('The Distributron', function() {
       .then(function() {
         return result;
       });
+  }
+
+  function getNewUser() {
+    return registerNewUser().get('inputValues');
   }
 
   var uniqueId = 1;

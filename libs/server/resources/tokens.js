@@ -41,8 +41,8 @@ function handleAuthentication(req, res, next) {
       return authTokens.createAsync({
         id: uuid.v4(),
         userId: this.user.id,
-        createdTimestamp: now,
-        expirationTimestamp: new Date(now.getTime() + config.authTokenExpirationInSeconds)
+        createdTimestamp: now.toISOString(),
+        expirationTimestamp: new Date(now.getTime() + config.authTokenExpirationInSeconds).toISOString()
       });
     })
     .then(function(token) {

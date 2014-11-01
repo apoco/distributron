@@ -20,9 +20,9 @@ function create(db) {
     securityAnswerHash: { type: 'binary', size: 32, required: true },
     activationCode: { type: 'text', size: 36 },
     lockoutCounter: { type: 'integer', size: 2, defaultValue: 0 },
-    createdTimestamp: { type: 'date', time: true, required: true },
-    activatedTimestamp: { type: 'date', time: true },
-    lockoutTimestamp: { type: 'date', time: true }
+    createdTimestamp: { type: 'text', required: true },
+    activatedTimestamp: { type: 'text' },
+    lockoutTimestamp: { type: 'text' }
   }, {
     methods: {
       validatePassword: function(password) {
@@ -38,21 +38,17 @@ function create(db) {
                 return true;
               }
             } else {
-              this.lockoutCounter++;
-              if (this.lockoutCounter >= config.lockoutLoginAttempts) {
-                this.lockoutTimestamp = new Date(Date.now());
-              }
+              this.lockoutCounter = (this.lockoutCounter || 0) + 1;
+              this.lockoutTimestamp = new Date().toISOString();
               return this.saveAsync().return(false);
             }
           });
       },
       isLockedOut: function() {
-        var wasLockedOut = this.lockoutTimestamp;
-        var hasLockoutExpired =
-            wasLockedOut
-            && ((Date.now() - this.lockoutTimestamp.getTime()) < config.lockoutDurationInSeconds * 1000);
-
+        var wasLockedOut = this.lockoutCounter >= config.lockoutLoginAttempts;
         if (wasLockedOut) {
+          var lockoutDuration = Date.now() - (new Date(this.lockoutTimestamp).getTime());
+          var hasLockoutExpired = lockoutDuration > (config.lockoutDurationInSeconds * 1000);
           if (hasLockoutExpired) {
             this.clearLockout();
             return false;

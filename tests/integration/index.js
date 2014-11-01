@@ -35,7 +35,7 @@ describe('The Distributron', function() {
           var startupScript = path.resolve(__dirname, '../../index.js');
           appProcess = childProcess.fork(
             startupScript,
-            ['config.json', '--database=sqlite://' + dbFile, '--init=true', '--lockoutLoginAttempts=3'],
+            ['config.json', '--database=sqlite://' + dbFile],
             {silent: true, cwd: __dirname});
           appProcess.on('error', function(err) {
             console.error(err.stack);
@@ -133,12 +133,8 @@ describe('The Distributron', function() {
         .bind({})
         .then(function(result) {
           this.user = result.inputValues;
-          return submitInvalidLogin(this.user.username);
         })
-        .then(function() {
-          return submitInvalidLogin(this.user.username);
-        })
-        .then(function() {
+        .repeat(3, function() {
           return submitInvalidLogin(this.user.username);
         })
         .then(function() {
@@ -147,9 +143,46 @@ describe('The Distributron', function() {
         .then(expectError);
     });
 
-    it('resets the lockout count on a successful login');
+    it('resets the lockout count on a successful login', function() {
+      return registerNewUser()
+        .bind({})
+        .then(function(result) {
+          this.user = result.inputValues;
+        })
+        .repeat(2, function() {
+          return submitInvalidLogin(this.user.username);
+        })
+        .then(function() {
+          return submitForm('/login', { username: this.user.username, password: this.user.password });
+        })
+        .repeat(2, function() {
+          return submitInvalidLogin(this.user.username);
+        })
+        .then(function() {
+          return submitForm('/login', { username: this.user.username, password: this.user.password });
+        })
+        .then(function() {
+          return waitUntilElementIsGone('form');
+        });
+    });
 
-    it('resets the lockout status of an account after a period of time');
+    it('resets the lockout status of an account after a period of time', function() {
+      return registerNewUser()
+        .bind({})
+        .then(function(result) {
+          this.user = result.inputValues;
+        })
+        .repeat(3, function() {
+          return submitInvalidLogin(this.user.username);
+        })
+        .delay(5000)
+        .then(function() {
+          return submitForm('/login', { username: this.user.username, password: this.user.password });
+        })
+        .then(function() {
+          return waitUntilElementIsGone('form');
+        });
+    });
 
     it('redirects to the dashboard if the username and password are valid');
 
@@ -672,7 +705,7 @@ describe('The Distributron', function() {
   }
 
   function ensureElementDoesNotExist(selector) {
-    driver.findElements(byCss(selector))
+    return driver.findElements(byCss(selector))
       .then(function(elements) {
         expect(elements.length).to.equal(0);
       });
@@ -862,3 +895,11 @@ describe('The Distributron', function() {
       });
   }
 });
+
+Promise.prototype.repeat = function(times, fn) {
+  var result = this;
+  for (var i = 0; i < times; i++) {
+    result = result.then(fn);
+  }
+  return result;
+};

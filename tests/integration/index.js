@@ -184,10 +184,7 @@ describe('The Distributron', function() {
     });
 
     it('redirects to the dashboard if the username and password are valid', function() {
-      return getNewUser()
-        .then(function(user) {
-          return submitForm('/login', { username: user.username, password: user.password });
-        })
+      return loginNewUser()
         .then(function() {
           return waitForElement('#dashboard');
         });
@@ -250,8 +247,17 @@ describe('The Distributron', function() {
   });
 
   describe('logout action', function() {
-    it('takes the user to the login form');
     it('clears the authorization cookie');
+
+    it('takes the user to the login form', function() {
+      return loginNewUser()
+        .then(function() {
+          return goToUrl('/logout');
+        })
+        .then(function() {
+          return waitForElement('form input[name="username"]');
+        });
+    });
   });
 
   describe('registration form', function() {
@@ -853,6 +859,18 @@ describe('The Distributron', function() {
 
   function getNewUser() {
     return registerNewUser().get('inputValues');
+  }
+
+  function loginNewUser() {
+    return getNewUser()
+      .bind({})
+      .then(function(user) {
+        this.user = user;
+        return submitForm('/login', { username: user.username, password: user.password });
+      })
+      .then(function() {
+        return this.user;
+      });
   }
 
   var uniqueId = 1;

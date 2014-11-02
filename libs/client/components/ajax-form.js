@@ -86,6 +86,27 @@ module.exports = React.createClass({
     this.props.onChange && this.props.onChange({ field: field.name, value: normalizedValue });
   },
 
+  submitForm: function() {
+    return this.props.action ? this.props.action(this.getFormData()) : reqwest(this.buildRequestOptions());
+  },
+
+  getFormData: function() {
+    var data;
+    if (this.props.data) {
+      if (typeof(this.props.data) === 'function') {
+        data = this.props.data();
+      } else {
+        data = this.props.data;
+      }
+    } else {
+      data = {};
+      this.props.fields.forEach(function(field) {
+        data[field.name] = this.state[field.name];
+      }.bind(this));
+    }
+    return data;
+  },
+
   buildRequestOptions: function() {
     var url = (typeof(this.props.url) === 'function') ? this.props.url() : this.props.url;
     var method = this.props.method || 'post';
@@ -96,20 +117,9 @@ module.exports = React.createClass({
       contentType = 'application/json';
     }
 
-    var data = {};
-    if (this.props.data) {
-      if (typeof(this.props.data) === 'function') {
-        data = this.props.data();
-      } else {
-        data = this.props.data;
-      }
-    } else {
-      this.props.fields.forEach(function(field) {
-        data[field.name] = this.state[field.name];
-      }.bind(this));
-      if (type === 'json') {
-        data = JSON.stringify(data);
-      }
+    var data = this.getFormData();
+    if (type === 'json') {
+      data = JSON.stringify(data);
     }
 
     return {
@@ -161,7 +171,7 @@ module.exports = React.createClass({
 
     Promise
       .bind(this)
-      .return(reqwest(this.buildRequestOptions()))
+      .return(this.submitForm())
       .then(function(res) {
         this.props.onAfterSubmit(res);
       })

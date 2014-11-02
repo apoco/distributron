@@ -10,8 +10,8 @@ var Dashboard = require('./components/dashboard');
 
 React.renderComponent(
   Routes({ location: 'history' },
-
     Route({ name: 'login', path: '/login', handler: LoginForm }),
+    Route({ name: 'logout', path: '/logout', handler: require('./components/logout-page') }),
     Route({ name: 'register', path: '/register', handler: require('./components/registration-form') }),
     Route({ name: 'activate', path: '/activate/:code', handler: require('./components/activation-page') }),
     Route({

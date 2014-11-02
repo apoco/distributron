@@ -87,7 +87,7 @@ module.exports = React.createClass({
       : React.DOM.div({ id: 'registration-form' },
         AjaxForm({
           fields: fields,
-          url: '/api/users/',
+          action: users.register.bind(users),
           onAfterSubmit: this.handleSuccess
         }),
         Link({ to: 'login' }, tr('I already have an account'))));

@@ -2,7 +2,8 @@
 
 module.exports = {
   addRoutes: function (app) {
-    app.post('/api/tokens', handleAuthentication)
+    app.post('/api/tokens', handleAuthentication);
+    app.delete('/api/tokens/:token', handleTokenExpiration);
   }
 };
 
@@ -47,6 +48,20 @@ function handleAuthentication(req, res, next) {
     })
     .then(function(token) {
       res.status(200).json(token.id);
+    })
+    .catch(next);
+}
+
+function handleTokenExpiration(req, res, next) {
+  return new Promise(function(resolve, reject) {
+    authTokens
+      .find({ id: req.params.token })
+      .remove(function(err) {
+        err ? reject(err) : resolve();
+      });
+    })
+    .then(function() {
+      res.status(204).end();
     })
     .catch(next);
 }

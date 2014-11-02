@@ -30,12 +30,6 @@ module.exports = React.createClass({
         return false;
       });
   },
-  getSecurityQuestionUrl: function() {
-    return '/api/users/' + encodeURIComponent(this.state.username) + '/question';
-  },
-  getChangePasswordUrl: function() {
-    return '/api/users/' + encodeURIComponent(this.props.params.username) + '/password';
-  },
   handleSecurityQuestion: function(question) {
     this.setState({ hasSubmittedUsername: true, securityQuestion: question });
   },
@@ -65,9 +59,7 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: tr('Next'),
-        method: 'get',
-        data: null,
-        url: this.getSecurityQuestionUrl,
+        action: users.getSecurityQuestion.bind(users, this.state.username),
         onChange: this.handleFieldChange,
         onAfterSubmit: this.handleSecurityQuestion
       })
@@ -79,6 +71,11 @@ module.exports = React.createClass({
       AjaxForm({
         fields: [
           {
+            name: 'username',
+            type: 'hidden',
+            defaultValue: this.state.username
+          },
+          {
             name: 'answer',
             type: 'password',
             label: this.state.securityQuestion,
@@ -86,7 +83,7 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: tr('Submit'),
-        url: this.getSecurityQuestionUrl,
+        action: users.resetPassword.bind(users),
         onAfterSubmit: this.handlePasswordReset
       })
     ];
@@ -96,6 +93,11 @@ module.exports = React.createClass({
       React.DOM.p(null, tr('Enter your new password to complete your password reset.')),
       AjaxForm({
         fields: [
+          {
+            name: 'username',
+            type: 'hidden',
+            defaultValue: this.props.params.username
+          },
           {
             name: 'old',
             type: 'password',
@@ -117,8 +119,7 @@ module.exports = React.createClass({
           }
         ],
         submitLabel: tr('Submit'),
-        url: this.getChangePasswordUrl,
-        method: 'put',
+        action: users.setPassword.bind(users),
         onAfterSubmit: this.handleChangedPassword
       })
     ];

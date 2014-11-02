@@ -6,6 +6,7 @@ var Link = require('react-router').Link;
 var Navigation = require('react-router').Navigation;
 var IsRequiredRule = require('../forms/rules/required');
 var tr = require('../localization').translate;
+var users = require('../repositories/users');
 
 module.exports = React.createClass({
   displayName: 'LoginForm',
@@ -24,10 +25,9 @@ module.exports = React.createClass({
   render: function() {
     return React.DOM.div(null,
       AjaxForm({
-        url: '/api/tokens',
+        action: users.login.bind(users),
         onChange: this.handleFieldChange,
         onAfterSubmit: this.handleLogin,
-        submitErrorMessage: this.getErrorMessage,
         fields: [
           {
             name: 'username',

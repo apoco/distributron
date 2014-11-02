@@ -247,9 +247,21 @@ describe('The Distributron', function() {
   });
 
   describe('logout action', function() {
-    it('clears the authorization cookie');
-
     it('takes the user to the login form', function() {
+      return loginAndLogout();
+    });
+
+    it('clears the authorization cookie', function() {
+      return loginAndLogout()
+        .then(function() {
+          return goToUrl('/');
+        })
+        .then(function() {
+          return waitForElement('form input[name="username"]');
+        });
+    });
+
+    function loginAndLogout() {
       return loginNewUser()
         .then(function() {
           return goToUrl('/logout');
@@ -257,7 +269,7 @@ describe('The Distributron', function() {
         .then(function() {
           return waitForElement('form input[name="username"]');
         });
-    });
+    }
   });
 
   describe('registration form', function() {
@@ -650,7 +662,7 @@ describe('The Distributron', function() {
   });
 
   describe('dashboard', function() {
-    it('exists');
+    it('requires an authenticated user');
   });
 
   afterEach(function() {

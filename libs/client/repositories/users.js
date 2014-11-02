@@ -32,8 +32,13 @@ UsersRepository.prototype.login = function(data) {
 UsersRepository.prototype.logout = function() {
   var token = this.current && this.current.token;
   if (token) {
-    return api.tokens.item(token).delete();
+    return api.tokens.item(token).delete()
+      .bind(this)
+      .then(function() {
+        this.current = null;
+      });
   } else {
+    this.current = null;
     return Promise.resolve(null);
   }
 };

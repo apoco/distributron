@@ -1,10 +1,22 @@
 'use strict';
 
-var Localizer = require('localize');
-var translations = require('./translations.json');
-var localizer = new Localizer(translations);
+module.exports = {
+  getLocalizer: getLocalizer,
+  getTranslator: getTranslator
+};
 
-localizer.setLocale(navigator.userLanguage || navigator.language || 'en-US');
+var prefs = require('../repositories/preferences');
+var Localizer = require('localize');
+var localizer = new Localizer(require('./translations.json'));
 localizer.throwOnMissingTranslation(false);
 
-module.exports = localizer;
+
+function getLocalizer() {
+  localizer.setLocale(prefs.language);
+  return localizer;
+}
+
+function getTranslator() {
+  var localizer = getLocalizer();
+  return localizer.translate.bind(localizer);
+}

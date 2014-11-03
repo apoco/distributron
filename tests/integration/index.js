@@ -9,6 +9,7 @@ var path = require('path');
 var url = require('url');
 var request = require('request');
 var webdriver = require('selenium-webdriver');
+var chrome = require("selenium-webdriver/chrome");
 var smtpTester = require('smtp-tester');
 var cheerio = require('cheerio');
 var config = require('./config.json');
@@ -25,9 +26,9 @@ describe('The Distributron', function() {
   this.timeout(30000);
 
   before(function() {
-    driver = new webdriver.Builder()
-      .withCapabilities(webdriver.Capabilities.chrome())
-      .build();
+    var options = new chrome.Options();
+    options.addArguments('--lang=es');
+    driver = getWebDriver(options);
 
     return deleteDatabase()
       .then(function() {
@@ -231,6 +232,20 @@ describe('The Distributron', function() {
         });
     });
 
+    it('localizes the text message', function() {
+      return click('#language option[value="es"]')
+        .then(function() {
+          return waitForElement('input[name="password"]');
+        })
+        .call('getAttribute', 'id')
+        .then(function(id) {
+          return getText('label[for="' + id + '"]');
+        })
+        .then(function(text) {
+          expect(text).to.equal('Contraseña');
+        });
+    });
+
     function submitInvalidLogin(username) {
       return submitForm('/login', { username: username, password: 'invalid' })
         .then(function() {
@@ -393,8 +408,6 @@ describe('The Distributron', function() {
         });
     });
 
-    it('localizes the success message');
-
     it('regenerates activation codes to replace unactivated codes', function() {
       var firstUserResults;
       return getNewUserActivation()
@@ -522,9 +535,8 @@ describe('The Distributron', function() {
         })
         .call('getAttribute', 'id')
         .then(function(id) {
-          return select('label[for="' + id + '"]');
+          return getText('label[for="' + id + '"]');
         })
-        .call('getText')
         .then(function(text) {
           expect(text).to.equal(registrationData.question);
         });
@@ -675,6 +687,11 @@ describe('The Distributron', function() {
     return deleteDatabase();
   });
 
+  function getWebDriver(opts) {
+    var caps = opts ? opts.toCapabilities() : webdriver.Capabilities.chrome();
+    return new webdriver.Builder().withCapabilities(caps).build();
+  }
+
   function goToUrl(path) {
     var absoluteUrl = url.resolve(baseUrl, path);
     return Promise.resolve(driver.getCurrentUrl())
@@ -693,6 +710,10 @@ describe('The Distributron', function() {
     } else {
       return Promise.resolve(driver.findElement(byCss(selectors)));
     }
+  }
+
+  function getText(selector) {
+    return select(selector).call('getText');
   }
 
   function waitFor(fn, timeout) {

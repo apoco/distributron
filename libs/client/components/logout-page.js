@@ -3,7 +3,6 @@
 var React = require('react');
 var LoginForm = require('./login-form');
 var reqwest = require('reqwest');
-var tr = require('../localization').translate;
 var users = require('../repositories/users');
 
 module.exports = React.createClass({
@@ -17,6 +16,7 @@ module.exports = React.createClass({
     return { isLoggingOut: true };
   },
   render: function() {
+    var tr = require('../localization').getTranslator();
     if (this.state.isLoggingOut) {
       return React.DOM.p(null, tr('Logging you out...'));
     } else {

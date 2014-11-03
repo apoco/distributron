@@ -3,7 +3,6 @@
 var React = require('react');
 var LoginForm = require('./login-form');
 var reqwest = require('reqwest');
-var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'ActivationPage',
@@ -41,6 +40,7 @@ module.exports = React.createClass({
       });
   },
   render: function() {
+    var tr = require('../localization').getTranslator();
     if (this.state.isActivating) {
       return React.DOM.div({ className: 'wait-message' }, tr('Activating your account...'));
     } else if (this.state.username) {

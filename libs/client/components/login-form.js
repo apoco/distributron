@@ -5,7 +5,6 @@ var AjaxForm = require('./ajax-form');
 var Link = require('react-router').Link;
 var Navigation = require('react-router').Navigation;
 var IsRequiredRule = require('../forms/rules/required');
-var tr = require('../localization').translate;
 var users = require('../repositories/users');
 
 module.exports = React.createClass({
@@ -23,6 +22,7 @@ module.exports = React.createClass({
   },
 
   render: function() {
+    var tr = require('../localization').getTranslator();
     return React.DOM.div(null,
       AjaxForm({
         action: users.login.bind(users),

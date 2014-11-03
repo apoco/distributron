@@ -5,7 +5,6 @@ var React = require('react');
 var Field = require('./field');
 var reqwest = require('reqwest');
 var ValidationError = require('../errors/validation');
-var tr = require('../localization').translate;
 
 module.exports = React.createClass({
   displayName: 'AjaxForm',
@@ -132,6 +131,7 @@ module.exports = React.createClass({
   },
 
   getErrorMessage: function(err) {
+    var tr = require('../localization').getTranslator();
     var errorMessage;
     if (this.props.submitErrorMessage) {
       errorMessage = this.props.submitErrorMessage;

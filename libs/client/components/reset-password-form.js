@@ -40,6 +40,7 @@ module.exports = React.createClass({
     this.setState({ hasChangedPassword: true });
   },
   renderStep1: function() {
+    var tr = require('../localization').getTranslator();
     return [
       React.DOM.p(null, tr('To reset your password, first enter your email address.')),
       AjaxForm({
@@ -66,6 +67,7 @@ module.exports = React.createClass({
     ];
   },
   renderStep2: function() {
+    var tr = require('../localization').getTranslator();
     return [
       React.DOM.p(null, tr('Now answer your password reset question.')),
       AjaxForm({
@@ -89,6 +91,7 @@ module.exports = React.createClass({
     ];
   },
   renderNewPasswordForm: function() {
+    var tr = require('../localization').getTranslator();
     return [
       React.DOM.p(null, tr('Enter your new password to complete your password reset.')),
       AjaxForm({
@@ -125,6 +128,7 @@ module.exports = React.createClass({
     ];
   },
   render: function() {
+    var tr = require('../localization').getTranslator();
     var formContent;
     if (this.props.params.username) {
       if (this.state.hasChangedPassword) {

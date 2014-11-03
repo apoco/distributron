@@ -218,6 +218,10 @@ module.exports = React.createClass({
       this.state.hadSubmitError
         ? React.DOM.div({ className: 'error' }, this.state.formErrorMessage)
         : null,
-      React.DOM.input(submitProps));
+      React.DOM.menu(null,
+        (this.props.buttons || []).map(function(btn) {
+          return React.DOM.button({ id: btn.id, onClick: btn.onClick }, btn.label);
+        }),
+        React.DOM.input(submitProps)));
   }
 });

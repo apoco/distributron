@@ -1,7 +1,8 @@
 'use strict';
 
 var React = require('react');
-var Link = require('react-router').Link;
+var Router = require('react-router');
+var Link = Router.Link;
 var AjaxForm = require('./ajax-form');
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');
@@ -9,6 +10,8 @@ var FieldsMatchRule = require('../forms/rules/fields-match');
 var users = require('../repositories/users');
 
 module.exports = React.createClass({
+  displayName: 'ResetPasswordForm',
+  mixins: [ Router.Navigation ],
   getInitialState: function() {
     return { hasSubmittedUsername: false, hasResetPassword: false };
   },
@@ -38,6 +41,9 @@ module.exports = React.createClass({
   },
   handleChangedPassword: function() {
     this.setState({ hasChangedPassword: true });
+  },
+  handleFormReset: function() {
+    this.setState({ hasSubmittedUsername: false });
   },
   renderStep1: function() {
     var tr = require('../localization').getTranslator();
@@ -84,6 +90,7 @@ module.exports = React.createClass({
             rules: [ new IsRequiredRule('answer', tr('You must enter a password reset answer')) ]
           }
         ],
+        buttons: [{ id: 'reset', label: tr('Reset'), onClick: this.handleFormReset }],
         submitLabel: tr('Submit'),
         action: users.resetPassword.bind(users),
         onAfterSubmit: this.handlePasswordReset

@@ -548,7 +548,19 @@ describe('The Distributron', function() {
         });
     });
 
-    it('has a reset button to return to the username entry');
+    it('has a reset button to return to the username entry', function() {
+      return getNewUser()
+        .then(function(user) {
+          return submitForm('/reset-password', { username: user.username });
+        })
+        .then(function() {
+          return waitForElement('#reset');
+        })
+        .call('click')
+        .then(function() {
+          return waitForElement('input[type="email"][name="username"]');
+        });
+    });
 
     it('validates that the security answer is correct', function() {
       return getNewUser()

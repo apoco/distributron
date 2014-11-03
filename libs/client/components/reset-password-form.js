@@ -1,8 +1,8 @@
 'use strict';
 
 var React = require('react');
+var Link = require('react-router').Link;
 var AjaxForm = require('./ajax-form');
-var tr = require('../localization').translate;
 var IsRequiredRule = require('../forms/rules/required');
 var IsEmailRule = require('../forms/rules/email');
 var FieldsMatchRule = require('../forms/rules/fields-match');
@@ -146,6 +146,10 @@ module.exports = React.createClass({
         tr('Your reset request has been accepted. You should receive an email with your temporary password shortly.'));
     }
 
-    return React.DOM.div(null, formContent);
+    return React.DOM.div(null,
+      formContent,
+      React.DOM.nav(null,
+        Link({ to: 'login' }, tr('Login')),
+        Link({ to: 'register' }, tr('Register an account'))));
   }
 });

@@ -500,7 +500,13 @@ describe('The Distributron', function() {
         });
     });
 
-    it('has links to the login and registration forms');
+    it('has links to the login and registration forms', function() {
+      return select(['a[href="/login"]', 'a[href="/register"]'])
+        .spread(function(loginLink, registerLink) {
+          expect(loginLink).to.exist;
+          expect(registerLink).to.exist;
+        });
+    });
 
     it('validates that the username is populated', function() {
       return select('input[type="submit"]')

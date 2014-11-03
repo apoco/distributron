@@ -588,7 +588,20 @@ describe('The Distributron', function() {
         });
     });
 
-    it('accepts security answers in a case-insensitive manner');
+    it('accepts security answers in a case-insensitive manner', function() {
+      return getNewUser()
+        .bind({})
+        .then(function(user) {
+          this.user = user;
+          return submitForm('/reset-password', { username: user.username });
+        })
+        .then(function() {
+          return submitForm({ answer: this.user.answer.toUpperCase() });
+        })
+        .then(function() {
+          return waitUntilElementIsGone('form');
+        });
+    });
 
     it('shows a login failure if the email reset link contains an old password');
 

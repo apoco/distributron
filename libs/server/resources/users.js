@@ -59,7 +59,7 @@ function generateUser(req) {
       return cryptoUtils.getSaltedHash(salt, req.body.password);
     }),
     answerHash = Promise.join(answerSalt, function (salt) {
-      return cryptoUtils.getSaltedHash(salt, req.body.answer);
+      return cryptoUtils.getSaltedHash(salt, req.body.answer.toLowerCase());
     });
   return Promise.props({
     id: require('node-uuid').v4(),

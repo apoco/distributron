@@ -53,7 +53,7 @@ function handlePostSecurityAnswer(req, res, next) {
       user = dbUser;
       return cryptoUtils.validateHashedValue(
         user.securityAnswerSalt,
-        req.body.answer,
+        req.body.answer.toLowerCase(),
         user.securityAnswerHash);
     })
     .then(function(isValid) {
